@@ -12,10 +12,6 @@ A real-time application for detecting and recognizing sign language gestures usi
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [Usage](#usage)
-- [Project Report](#project-report)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 ## Aim
 
@@ -27,11 +23,11 @@ Sign language is a crucial form of communication for individuals with hearing im
 
 This project leverages Flask for the web interface and TensorFlow/Keras for the machine learning model to recognize sign language gestures in real-time from a webcam feed.
 
-<img src="hand-signs-of-the-ASL-Language.png"  width="60%"/>
+<img src="../docs/hand-signs-of-the-ASL-Language.png"  width="60%"/>
 
 > American Sign Language Convention for Alphabets.
 
-<img src="sign%20language%202.jpg"  width="60%"/>
+<img src="../docs/sign%20language%202.jpg"  width="60%"/>
 
 > Custom Sign Language for Words / Sentences.
 
@@ -106,27 +102,6 @@ cd sign2text
     ```
 
 4. The web interface will display the webcam feed and detected sign language gestures.
-
-## Project Report
-For detailed insights, analysis, and findings, refer to the Project Report provided in the repository or [click here](https://drive.google.com/file/d/1he-xNEdvnj6nGKRLIHwnSalA8uVaDp3C/view?usp=sharing).
-
-## Contributing
-Contributions are welcome! If you'd like to contribute to this project, feel free to open issues, create pull requests, or reach out to discuss potential improvements.
-
-## License
-This section states that the Realtime Sign Language Detection Using LSTM Model project is released under the MIT License. It briefly describes the terms and conditions of the license, such as the permission to use, modify, and distribute the project, with appropriate attribution. It provides a link to the full text of the MIT License for further reference.
-
-## Contact
-This is a Final Year B.Tech Project for the session 2020-24. This project is completed under the Guidance of **Dr. Shashi Raj** _(Assistant Professor, Dept. of CSE, Bakhtiyarpur College of Engineering, Patna)_. 
-This is a group project and the members are :
-1. [Ujjwal Raj](https://github.com/uzibytes) - 20105126034 <a href="https://www.linkedin.com/in/uraj/"> <img src="https://img.shields.io/badge/ujjwal-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Connect on LinkedIn"></a>
-2. [Krishna Raj](https://github.com/krishna-raz) - 20105126040 <a href="https://www.linkedin.com/in/iamkrishnaraj/"> <img src="https://img.shields.io/badge/krishna-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Connect on LinkedIn"></a>
-3. [Prashant Kumar](https://github.com/PkThunderBolt) - 20105126043 <a href="https://www.linkedin.com/in/pkprashant566/"> <img src="https://img.shields.io/badge/prashant-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Connect on LinkedIn"></a>
-4. [Rajnish Puri](https://github.com/RajnishPuri) - 20105126031 <a href="https://www.linkedin.com/in/rajnish-puri-804b11209/"> <img src="https://img.shields.io/badge/rajnish-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Connect on LinkedIn"></a>
-
-
-For any questions or inquiries, feel free to contact.
-
 
 
 

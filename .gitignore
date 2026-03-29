@@ -3,3 +3,5 @@ venv
 *.p
 *.pickle
 Sign2Text/data
+__pycache__
+*.pyc
