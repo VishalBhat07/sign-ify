@@ -1,271 +1,201 @@
+"""
+ISL Real-time Translator
+Uses the SigLIP2-based Alphabet-Sign-Language-Detection model
+(prithivMLmods/Alphabet-Sign-Language-Detection) for high-accuracy
+sign language alphabet recognition from a live webcam feed.
+"""
+
 import cv2
-import mediapipe as mp
 import numpy as np
+import torch
+from PIL import Image
+from transformers import AutoImageProcessor, SiglipForImageClassification
 
-# MediaPipe 0.10.32 on Python 3.13 exposes only `tasks` and not `solutions`.
-if not hasattr(mp, "solutions"):
-    raise RuntimeError(
-        "This script requires MediaPipe's `solutions` API, which is missing in your current install. "
-        "Use Python 3.11/3.12 with a compatible mediapipe version (for example 0.10.14)."
-    )
+# ───────────────────────── Model Loading ─────────────────────────
 
-# Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=2,
-    min_detection_confidence=0.7,
-    min_tracking_confidence=0.5
-)
-mp_draw = mp.solutions.drawing_utils
+MODEL_NAME = "prithivMLmods/Alphabet-Sign-Language-Detection"
 
-# ───────────────────────────── Helpers ─────────────────────────────
+print("=" * 60)
+print("  Loading SigLIP model… (first run downloads ~350 MB)")
+print("=" * 60)
 
-def dist(p1, p2):
-    """Euclidean distance between two MediaPipe landmarks."""
-    return np.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2 + (p1.z - p2.z)**2)
+processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
+model = SiglipForImageClassification.from_pretrained(MODEL_NAME)
+model.eval()
 
-def is_finger_extended(lm, finger):
+# Use MPS (Apple Silicon GPU) if available, else CPU
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+    print("  ⚡ Using Apple Silicon GPU (MPS)")
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
+    print("  ⚡ Using CUDA GPU")
+else:
+    device = torch.device("cpu")
+    print("  🐢 Using CPU")
+
+model = model.to(device)
+
+# Label mapping (model output index → letter)
+LABELS = {i: chr(ord("A") + i) for i in range(26)}
+
+# ───────────────────────── Classification ─────────────────────────
+
+def classify_frame(frame_bgr):
     """
-    Check if finger is extended using distance-from-wrist heuristic.
-    finger: 0=Thumb, 1=Index, 2=Middle, 3=Ring, 4=Pinky
+    Classify a BGR OpenCV frame and return (predicted_letter, confidence, all_probs).
     """
-    tip_ids  = [4, 8, 12, 16, 20]
-    base_ids = [2, 5,  9, 13, 17]
-    wrist = lm[0]
-    tip  = lm[tip_ids[finger]]
-    base = lm[base_ids[finger]]
-    d_tip  = np.sqrt((tip.x - wrist.x)**2 + (tip.y - wrist.y)**2)
-    d_base = np.sqrt((base.x - wrist.x)**2 + (base.y - wrist.y)**2)
-    return d_tip > d_base * 1.3
+    # Convert BGR → RGB PIL Image
+    rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+    pil_image = Image.fromarray(rgb)
 
-def get_finger_state(lm):
-    """Return a tuple of bools: (thumb, index, middle, ring, pinky)."""
-    return tuple(is_finger_extended(lm, i) for i in range(5))
+    inputs = processor(images=pil_image, return_tensors="pt")
+    inputs = {k: v.to(device) for k, v in inputs.items()}
 
-def is_hand_horizontal(lm):
-    """Check if the index finger is pointing more sideways than up/down."""
-    dx = abs(lm[8].x - lm[5].x)  # Index tip vs Index MCP
-    dy = abs(lm[8].y - lm[5].y)
-    return dx > dy
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        probs = torch.nn.functional.softmax(logits, dim=1).squeeze()
 
-# ───────────────────────── Detection Logic ─────────────────────────
-#
-# STRATEGY: First check two-handed vowels, then use the number of
-#           extended fingers as a primary switch for consonants.
-#           Within each group, use secondary features (orientation,
-#           tip distances) to disambiguate.
-#
-# This guarantees NO overlapping checks.
+    top_idx = probs.argmax().item()
+    confidence = probs[top_idx].item()
+    letter = LABELS[top_idx]
 
-def detect_isl_letter(hand_landmarks_list, hand_label_list):
-    # ── Identify dominant (Right) and non-dominant (Left) hands ──
-    dom_idx = -1
-    non_dom_idx = -1
-    for i, label in enumerate(hand_label_list):
-        if label == "Right":
-            dom_idx = i
-        else:
-            non_dom_idx = i
-    if dom_idx == -1 and len(hand_landmarks_list) > 0:
-        dom_idx = 0
-    if dom_idx == -1:
-        return None
+    return letter, confidence, probs.cpu().numpy()
 
-    lm = hand_landmarks_list[dom_idx].landmark
-    scale = dist(lm[0], lm[9])  # Wrist → Middle-MCP (used to normalize)
-
-    # ── VOWELS (Two-handed: Right index touches Left fingertip) ──
-    if len(hand_landmarks_list) >= 2 and non_dom_idx != -1:
-        nd = hand_landmarks_list[non_dom_idx].landmark
-        th = scale * 0.45  # touch threshold
-        pointer = lm[8]    # dominant index tip
-        if dist(pointer, nd[4])  < th: return "A"   # Left Thumb
-        if dist(pointer, nd[8])  < th: return "E"   # Left Index
-        if dist(pointer, nd[12]) < th: return "I"   # Left Middle
-        if dist(pointer, nd[16]) < th: return "O"   # Left Ring
-        if dist(pointer, nd[20]) < th: return "U"   # Left Pinky
-
-    # ── CONSONANTS (One-handed, Right hand) ──
-    fingers = get_finger_state(lm)
-    # fingers = (Thumb, Index, Middle, Ring, Pinky)
-    n_up = sum(fingers)
-
-    # ────────── 0 fingers up ──────────
-    if n_up == 0:
-        # S = Fist  vs  T = Fist with thumb poking between index & middle
-        # T: thumb tip is between index-PIP and middle-PIP vertically
-        thumb_between = dist(lm[4], lm[6]) < scale * 0.35
-        if thumb_between:
-            return "T"
-        return "S"
-
-    # ────────── 1 finger up ──────────
-    if n_up == 1:
-        if fingers[1]:  # Index only
-            if is_hand_horizontal(lm):
-                return "G"   # Index pointing sideways
-            else:
-                # D vs X:  D = index straight up,  X = index hooked/bent
-                # For X, index tip is close to index PIP (landmark 6)
-                hook = dist(lm[8], lm[6]) < scale * 0.35
-                if hook:
-                    return "X"  # Hooked index
-                return "D"     # Straight index up
-        if fingers[4]:  # Pinky only
-            return "J"
-        if fingers[0]:  # Thumb only
-            return "THUMB"  # (not a standard letter, acts as no-match)
-
-    # ────────── 2 fingers up ──────────
-    if n_up == 2:
-        if fingers[0] and fingers[1]:  # Thumb + Index
-            return "L"
-        if fingers[0] and fingers[4]:  # Thumb + Pinky
-            return "Y"
-        if fingers[1] and fingers[2]:  # Index + Middle
-            if is_hand_horizontal(lm):
-                return "H"  # Two fingers pointing sideways
-            # Vertical: check spacing between index & middle tips
-            tip_gap = dist(lm[8], lm[12])
-            if tip_gap < scale * 0.15:
-                return "R"  # Crossed / very close together
-            elif tip_gap > scale * 0.4:
-                return "V"  # Peace / spread
-            else:
-                return "N"  # Together but not crossed
-
-    # ────────── 3 fingers up ──────────
-    if n_up == 3:
-        if fingers[1] and fingers[2] and fingers[3]:  # Index + Middle + Ring
-            return "W"
-        if fingers[2] and fingers[3] and fingers[4]:  # Middle + Ring + Pinky
-            # F = "OK sign" (thumb & index tips touching, other 3 up)
-            if dist(lm[4], lm[8]) < scale * 0.35:
-                return "F"
-        if fingers[0] and fingers[1] and fingers[2]:  # Thumb + Index + Middle
-            return "K"
-        if fingers[0] and fingers[1] and fingers[4]:  # Thumb + Index + Pinky
-            return "P"  # Custom assignment for P
-
-    # ────────── 4 fingers up ──────────
-    if n_up == 4:
-        if not fingers[0]:  # All except Thumb
-            return "B"
-        if not fingers[4]:  # All except Pinky
-            return "M"  # Custom: 4 fingers + thumb, no pinky
-
-    # ────────── 5 fingers up (open hand) ──────────
-    if n_up == 5:
-        return " "  # SPACE gesture = open palm
-
-    return None
 
 # ───────────────────────────── Main Loop ─────────────────────────────
 
 def main():
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("ERROR: Could not open webcam.")
+        return
+
     sentence = ""
     last_letter = None
     letter_count = 0
-    CONFIRM_FRAMES = 12  # Hold sign steady for ~0.4s at 30fps
+    CONFIRM_FRAMES = 10       # Hold sign steady for ~0.33s at 30fps
+    CONFIDENCE_THRESH = 0.60  # Minimum confidence to accept a prediction
+    frame_skip = 2            # Run inference every N frames (for speed)
+    frame_counter = 0
 
+    # Cache latest prediction between skipped frames
+    cached_letter = None
+    cached_confidence = 0.0
+    cached_top3 = []
+
+    print()
     print("=" * 60)
-    print("  ISL Real-time Translator")
+    print("  ISL Real-time Translator  (SigLIP Model)")
     print("=" * 60)
-    print("  Vowels : Two-handed (Right index → Left fingertips)")
-    print("  Consonants : One-handed (Right hand shapes)")
-    print("  Space  : Open palm (all 5 fingers)")
-    print("  Keys   : [C] Clear  [Q] Quit")
+    print("  Letters A–Z recognised from hand signs")
+    print("  Hold a sign steady for ~0.3s to type it")
+    print("  Keys: [SPACE] Add space  [BACKSPACE] Delete  [C] Clear  [Q] Quit")
     print("=" * 60)
 
-    while cap.isOpened():
+    while True:
         ok, frame = cap.read()
         if not ok:
             continue
 
         frame = cv2.flip(frame, 1)
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(rgb)
+        h, w = frame.shape[:2]
+        frame_counter += 1
 
-        current_letter = None
-        finger_debug = ""
+        # ── Region of Interest (center crop guide) ──
+        roi_size = min(h, w) - 60
+        rx = (w - roi_size) // 2
+        ry = (h - roi_size) // 2
+        roi = frame[ry:ry + roi_size, rx:rx + roi_size]
 
-        if results.multi_hand_landmarks:
-            hand_lm_list = []
-            hand_label_list = []
-            for i, hlm in enumerate(results.multi_hand_landmarks):
-                mp_draw.draw_landmarks(frame, hlm, mp_hands.HAND_CONNECTIONS)
-                hand_lm_list.append(hlm)
-                hand_label_list.append(
-                    results.multi_handedness[i].classification[0].label
-                )
+        # ── Run inference (skip some frames for performance) ──
+        if frame_counter % frame_skip == 0:
+            letter, confidence, probs = classify_frame(roi)
+            cached_letter = letter
+            cached_confidence = confidence
 
-            current_letter = detect_isl_letter(hand_lm_list, hand_label_list)
-
-            # Build debug string for dominant hand
-            for idx, lbl in enumerate(hand_label_list):
-                if lbl == "Right":
-                    fs = get_finger_state(hand_lm_list[idx].landmark)
-                    finger_debug = "T:{} I:{} M:{} R:{} P:{}".format(
-                        *["UP" if f else "--" for f in fs]
-                    )
-                    break
+            # Get top 3 predictions for debug display
+            top3_idx = np.argsort(probs)[::-1][:3]
+            cached_top3 = [(LABELS[i], probs[i]) for i in top3_idx]
 
         # ── Typing logic ──
-        if current_letter and current_letter != "THUMB":
-            if current_letter == last_letter:
+        if cached_letter and cached_confidence >= CONFIDENCE_THRESH:
+            if cached_letter == last_letter:
                 letter_count += 1
             else:
                 letter_count = 0
-            last_letter = current_letter
+            last_letter = cached_letter
 
             if letter_count == CONFIRM_FRAMES:
-                if current_letter == " " and sentence.endswith(" "):
-                    pass
-                else:
-                    sentence += current_letter
-                    tag = "Space" if current_letter == " " else current_letter
-                    print(f"  ✓ Typed: {tag}")
-                letter_count = -10
+                sentence += cached_letter
+                print(f"  ✓ Typed: {cached_letter}  (conf: {cached_confidence:.1%})")
+                letter_count = -8  # Cooldown to avoid rapid repeat
         else:
             last_letter = None
             letter_count = 0
 
-        # ── On-screen UI ──
-        h, w = frame.shape[:2]
-        cv2.rectangle(frame, (0, 0), (w, 130), (0, 0, 0), -1)
+        # ── Draw ROI guide ──
+        cv2.rectangle(frame, (rx, ry), (rx + roi_size, ry + roi_size),
+                       (0, 255, 200), 2)
+        cv2.putText(frame, "Show sign here", (rx + 10, ry - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 200), 2)
 
-        n_hands = len(results.multi_hand_landmarks) if results.multi_hand_landmarks else 0
-        cv2.putText(frame, f"Hands: {n_hands}", (w - 130, 25),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (180, 180, 180), 1)
+        # ── Top bar (dark overlay) ──
+        cv2.rectangle(frame, (0, 0), (w, 140), (0, 0, 0), -1)
 
-        show = current_letter if current_letter and current_letter != "THUMB" else "-"
-        if show == " ": show = "SPACE"
-        cv2.putText(frame, f"Detected: {show}", (10, 35),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(frame, f"Sentence: {sentence}", (10, 80),
+        # Detected letter + confidence
+        show = cached_letter if cached_letter and cached_confidence >= CONFIDENCE_THRESH else "-"
+        conf_pct = f"{cached_confidence:.0%}" if cached_letter else ""
+        color = (0, 255, 0) if cached_confidence >= CONFIDENCE_THRESH else (0, 100, 255)
+        cv2.putText(frame, f"Detected: {show}  {conf_pct}", (10, 35),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+
+        # Sentence
+        display_sentence = sentence if len(sentence) <= 40 else "..." + sentence[-37:]
+        cv2.putText(frame, f"Sentence: {display_sentence}", (10, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
-        if finger_debug:
-            cv2.putText(frame, finger_debug, (10, 120),
+
+        # Top-3 debug
+        if cached_top3:
+            top3_str = "  ".join([f"{l}:{c:.0%}" for l, c in cached_top3])
+            cv2.putText(frame, f"Top3: {top3_str}", (10, 120),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100, 200, 255), 1)
 
+        # Confirmation progress bar
+        if letter_count > 0 and last_letter:
+            bar_w = int((letter_count / CONFIRM_FRAMES) * 200)
+            cv2.rectangle(frame, (w - 220, 15), (w - 220 + bar_w, 35), (0, 255, 0), -1)
+            cv2.rectangle(frame, (w - 220, 15), (w - 20, 35), (100, 100, 100), 1)
+            cv2.putText(frame, "Confirming...", (w - 220, 55),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
+
         # Bottom legend
-        cv2.putText(frame, "[C] Clear  [Q] Quit  |  SPACE = Open Palm",
+        cv2.putText(frame, "[SPACE] Space  [BS] Delete  [C] Clear  [Q] Quit",
                     (10, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
 
-        cv2.imshow("ISL Translator", frame)
+        cv2.imshow("ISL Translator (SigLIP)", frame)
         key = cv2.waitKey(1) & 0xFF
+
         if key == ord("q"):
             break
         elif key == ord(" "):
             if not sentence.endswith(" "):
                 sentence += " "
+                print("  ✓ Typed: SPACE")
         elif key == ord("c"):
             sentence = ""
+            print("  ✗ Cleared sentence")
+        elif key == 8 or key == 127:  # Backspace / Delete
+            if sentence:
+                removed = sentence[-1]
+                sentence = sentence[:-1]
+                print(f"  ← Deleted: {removed}")
 
     cap.release()
     cv2.destroyAllWindows()
+    print(f"\nFinal sentence: {sentence}")
+
 
 if __name__ == "__main__":
     main()
