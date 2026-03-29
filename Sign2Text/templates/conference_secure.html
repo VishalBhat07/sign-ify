@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Echo-Sign 2.0 - Secure Conference</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --bg: #0a0f1a;
+        --surface: rgba(20, 30, 48, 0.8);
+        --primary: #10b981;
+        --secondary: #3b82f6;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Security Banner */
+      .security-banner {
+        background: linear-gradient(90deg, #10b981, #059669);
+        padding: 0.5rem 1rem;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+      .security-banner i {
+        margin-right: 0.5rem;
+      }
+
+      /* Setup Screen */
+      #setupScreen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 40px);
+        padding: 2rem;
+      }
+
+      .setup-card {
+        background: var(--surface);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 480px;
+        width: 100%;
+      }
+
+      .setup-card h1 {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #10b981, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .setup-card p {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+      }
+
+      .tab-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 0.75rem;
+        background: rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: var(--text-muted);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .tab-btn.active {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(16, 185, 129, 0.1);
+      }
+
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+
+      .form-group {
+        margin-bottom: 1.25rem;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
+
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        padding: 0.875rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 1rem;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      }
+
+      .role-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .role-option {
+        padding: 1.25rem;
+        background: rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+      }
+
+      .role-option:hover {
+        border-color: var(--primary);
+        background: rgba(16, 185, 129, 0.05);
+      }
+      .role-option.selected {
+        border-color: var(--primary);
+        background: rgba(16, 185, 129, 0.1);
+      }
+      .role-option i {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .room-id-display {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        text-align: center;
+      }
+
+      .room-id-display code {
+        font-size: 1.25rem;
+        color: var(--primary);
+        font-family: monospace;
+        word-break: break-all;
+      }
+
+      .copy-btn {
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--secondary);
+        border: none;
+        border-radius: 6px;
+        color: white;
+        cursor: pointer;
+      }
+
+      /* Conference Screen */
+      #conferenceScreen {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+      }
+
+      .conference-header {
+        padding: 0.75rem 1.5rem;
+        background: rgba(10, 15, 26, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .conference-info h2 {
+        font-size: 1.125rem;
+        margin-bottom: 0.25rem;
+      }
+      .conference-info small {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+
+      .status-badges {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .badge {
+        padding: 0.375rem 0.75rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+
+      .badge.warning {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.3);
+        color: var(--warning);
+      }
+
+      .btn-leave {
+        padding: 0.625rem 1.25rem;
+        background: var(--danger);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.875rem;
+      }
+
+      .conference-main {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 1rem;
+        padding: 1rem;
+        flex: 1;
+      }
+
+      .video-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .video-container {
+        position: relative;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        aspect-ratio: 4/3;
+      }
+
+      .video-container.local {
+        border: 2px solid var(--primary);
+      }
+      .video-container.remote {
+        border: 2px solid var(--secondary);
+      }
+
+      #localVideo,
+      #localCanvas,
+      .video-feed {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      #localCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .video-overlay {
+        position: absolute;
+        top: 0.75rem;
+        left: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+      }
+
+      .video-badge {
+        padding: 0.375rem 0.625rem;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+
+      .chat-section {
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .chat-header {
+        padding: 0.75rem 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .message {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        border-left: 3px solid var(--primary);
+        font-size: 0.875rem;
+      }
+
+      .message.voice {
+        border-left-color: var(--secondary);
+      }
+
+      .message-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .message-sender {
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+      .message-type {
+        padding: 0.125rem 0.375rem;
+        background: rgba(16, 185, 129, 0.2);
+        border-radius: 4px;
+        font-size: 0.65rem;
+      }
+      .message.voice .message-type {
+        background: rgba(59, 130, 246, 0.2);
+      }
+      .message-content {
+        flex: 1;
+        margin: 0 0.75rem;
+      }
+      .message-time {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+
+      .btn-speak {
+        padding: 0.25rem 0.5rem;
+        background: rgba(59, 130, 246, 0.2);
+        border: none;
+        border-radius: 4px;
+        color: var(--secondary);
+        cursor: pointer;
+        margin-left: 0.5rem;
+      }
+
+      .chat-input {
+        padding: 0.75rem;
+        background: rgba(0, 0, 0, 0.3);
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .chat-input input {
+        flex: 1;
+        padding: 0.625rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.875rem;
+      }
+
+      .btn-send,
+      .btn-voice {
+        padding: 0.625rem 1rem;
+        background: var(--primary);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+      }
+
+      .btn-voice {
+        background: var(--secondary);
+      }
+      .btn-voice.recording {
+        background: var(--danger);
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      .encryption-indicator {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.5rem 1rem;
+        background: rgba(16, 185, 129, 0.9);
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      @media (max-width: 1024px) {
+        .conference-main {
+          grid-template-columns: 1fr;
+        }
+        .video-section {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Security Banner -->
+    <div class="security-banner">
+      <i class="fa-solid fa-shield-halved"></i>
+      End-to-End Encrypted Video Conference | AES-256-GCM
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen">
+      <div class="setup-card">
+        <h1><i class="fa-solid fa-lock"></i> Secure Conference</h1>
+        <p>Create or join a password-protected room</p>
+
+        <div class="tab-buttons">
+          <button class="tab-btn active" onclick="showTab('create')">
+            <i class="fa-solid fa-plus"></i> Create Room
+          </button>
+          <button class="tab-btn" onclick="showTab('join')">
+            <i class="fa-solid fa-right-to-bracket"></i> Join Room
+          </button>
+        </div>
+
+        <!-- Create Room Tab -->
+        <div id="createTab" class="tab-content active">
+          <div class="form-group">
+            <label>Your Name</label>
+            <input
+              type="text"
+              id="createName"
+              placeholder="Enter your name"
+              value=""
+            />
+          </div>
+          <div class="form-group">
+            <label>Room Password (min 4 characters)</label>
+            <input
+              type="password"
+              id="createPassword"
+              placeholder="Create a password"
+            />
+          </div>
+          <div class="form-group">
+            <label>Your Role</label>
+            <div class="role-selector">
+              <div class="role-option" data-role="signer">
+                <i class="fa-solid fa-hands-asl-interpreting"></i>
+                <strong>Signer</strong>
+              </div>
+              <div class="role-option" data-role="viewer">
+                <i class="fa-solid fa-eye"></i>
+                <strong>Viewer</strong>
+              </div>
+            </div>
+          </div>
+          <button class="btn" id="btnCreate">
+            <i class="fa-solid fa-plus"></i> Create Secure Room
+          </button>
+
+          <div id="roomCreated" style="display: none">
+            <div class="room-id-display">
+              <p style="margin-bottom: 0.5rem; color: var(--text-muted)">
+                Room ID:
+              </p>
+              <code id="newRoomId"></code>
+              <br />
+              <button class="copy-btn" onclick="copyRoomId()">
+                <i class="fa-solid fa-copy"></i> Copy ID
+              </button>
+            </div>
+            <button class="btn" id="btnEnterRoom" style="margin-top: 1rem">
+              <i class="fa-solid fa-door-open"></i> Enter Room
+            </button>
+          </div>
+        </div>
+
+        <!-- Join Room Tab -->
+        <div id="joinTab" class="tab-content">
+          <div class="form-group">
+            <label>Your Name</label>
+            <input type="text" id="joinName" placeholder="Enter your name" />
+          </div>
+          <div class="form-group">
+            <label>Room ID</label>
+            <input type="text" id="joinRoomId" placeholder="Paste room ID" />
+          </div>
+          <div class="form-group">
+            <label>Room Password</label>
+            <input
+              type="password"
+              id="joinPassword"
+              placeholder="Enter password"
+            />
+          </div>
+          <div class="form-group">
+            <label>Your Role</label>
+            <div class="role-selector">
+              <div class="role-option" data-role="signer">
+                <i class="fa-solid fa-hands-asl-interpreting"></i>
+                <strong>Signer</strong>
+              </div>
+              <div class="role-option" data-role="viewer">
+                <i class="fa-solid fa-eye"></i>
+                <strong>Viewer</strong>
+              </div>
+            </div>
+          </div>
+          <button class="btn" id="btnJoin">
+            <i class="fa-solid fa-right-to-bracket"></i> Join Room
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conference Screen -->
+    <div id="conferenceScreen">
+      <div class="conference-header">
+        <div class="conference-info">
+          <h2 id="roomName">Secure Room</h2>
+          <small id="userRole">Role: Viewer</small>
+        </div>
+        <div class="status-badges">
+          <div class="badge">
+            <i class="fa-solid fa-lock"></i>
+            <span>E2E ENCRYPTED</span>
+          </div>
+          <div class="badge">
+            <i class="fa-solid fa-key"></i>
+            <span id="keyFingerprint">Key: ...</span>
+          </div>
+          <div class="badge">
+            <i class="fa-solid fa-users"></i>
+            <span id="participantCount">1</span>
+          </div>
+          <button class="btn-leave" id="btnLeave">
+            <i class="fa-solid fa-phone-slash"></i> Leave
+          </button>
+        </div>
+      </div>
+
+      <div class="conference-main">
+        <div class="video-section">
+          <div class="video-container local">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <canvas id="localCanvas"></canvas>
+            <div class="video-overlay">
+              <div class="video-badge" style="color: var(--primary)">
+                <i class="fa-solid fa-user"></i> You (<span id="yourRole"
+                  >-</span
+                >)
+              </div>
+            </div>
+          </div>
+
+          <div class="video-container remote">
+            <img
+              id="remoteVideoFeed"
+              class="video-feed"
+              alt="Encrypted Feed"
+              style="display: none"
+            />
+            <div class="video-overlay">
+              <div
+                class="video-badge"
+                id="remoteLabel"
+                style="color: var(--secondary)"
+              >
+                <i class="fa-solid fa-users"></i> Waiting...
+              </div>
+              <div
+                class="video-badge"
+                id="remoteGesture"
+                style="display: none; color: var(--primary)"
+              >
+                Gesture: <span>-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-section">
+          <div class="chat-header">
+            <i class="fa-solid fa-comments"></i> Encrypted Conversation
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div
+              style="
+                text-align: center;
+                color: var(--text-muted);
+                padding: 2rem;
+              "
+            >
+              <i
+                class="fa-solid fa-lock"
+                style="font-size: 1.5rem; margin-bottom: 0.5rem"
+              ></i>
+              <p>Messages are end-to-end encrypted</p>
+            </div>
+          </div>
+          <div class="chat-input">
+            <input
+              type="text"
+              id="voiceInput"
+              placeholder="Type a message..."
+            />
+            <button class="btn-voice" id="btnVoice">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <button class="btn-send" id="btnSend">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Encryption Indicator -->
+    <div
+      class="encryption-indicator"
+      id="encryptionIndicator"
+      style="display: none"
+    >
+      <i class="fa-solid fa-shield-halved"></i>
+      <span id="encryptionStatus">AES-256-GCM Active</span>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+      const socket = io();
+
+      let currentRole = null;
+      let roomId = "";
+      let roomPassword = "";
+      let userName = "";
+      let authToken = "";
+      let streaming = false;
+      let localStream = null;
+      let sessionKey = null;
+      let currentRemoteFrameUrl = null;
+
+      const localVideo = document.getElementById("localVideo");
+      const localCanvas = document.getElementById("localCanvas");
+      const ctx = localCanvas.getContext("2d");
+
+      async function sha256Bytes(input) {
+        const digest = await crypto.subtle.digest("SHA-256", input);
+        return new Uint8Array(digest);
+      }
+
+      async function deriveSessionKey(roomIdValue, passwordValue) {
+        const encoder = new TextEncoder();
+        const passwordKey = await crypto.subtle.importKey(
+          "raw",
+          encoder.encode(passwordValue),
+          "PBKDF2",
+          false,
+          ["deriveKey"]
+        );
+
+        const salt = await sha256Bytes(encoder.encode(roomIdValue));
+
+        return crypto.subtle.deriveKey(
+          {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256",
+          },
+          passwordKey,
+          {
+            name: "AES-GCM",
+            length: 256,
+          },
+          false,
+          ["decrypt"]
+        );
+      }
+
+      function base64ToBytes(base64) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      async function decryptVideoPacket(encryptedBase64) {
+        if (!sessionKey) {
+          throw new Error("Session key not ready");
+        }
+
+        const packet = base64ToBytes(encryptedBase64);
+        if (packet.length < 12 + 16 + 8) {
+          throw new Error("Encrypted packet too short");
+        }
+
+        const nonce = packet.slice(0, 12);
+        const timestamp = packet.slice(packet.length - 8);
+        const ciphertext = packet.slice(12, packet.length - 8);
+
+        const plaintext = await crypto.subtle.decrypt(
+          {
+            name: "AES-GCM",
+            iv: nonce,
+            additionalData: timestamp,
+          },
+          sessionKey,
+          ciphertext
+        );
+
+        return new Uint8Array(plaintext);
+      }
+
+      function updateRemoteFeedImage(imageBytes) {
+        const feedImg = document.getElementById("remoteVideoFeed");
+        const blob = new Blob([imageBytes], { type: "image/jpeg" });
+        const frameUrl = URL.createObjectURL(blob);
+
+        if (currentRemoteFrameUrl) {
+          URL.revokeObjectURL(currentRemoteFrameUrl);
+        }
+
+        currentRemoteFrameUrl = frameUrl;
+        feedImg.src = frameUrl;
+        feedImg.style.display = "block";
+      }
+
+      // Tab switching
+      function showTab(tab) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((c) => c.classList.remove("active"));
+
+        document
+          .querySelector(`[onclick="showTab('${tab}')"]`)
+          .classList.add("active");
+        document.getElementById(tab + "Tab").classList.add("active");
+      }
+
+      // Role selection
+      document.querySelectorAll(".role-option").forEach((opt) => {
+        opt.addEventListener("click", function () {
+          this.parentElement
+            .querySelectorAll(".role-option")
+            .forEach((o) => o.classList.remove("selected"));
+          this.classList.add("selected");
+          currentRole = this.dataset.role;
+        });
+      });
+
+      // Create Room
+      document
+        .getElementById("btnCreate")
+        .addEventListener("click", function () {
+          const name = document.getElementById("createName").value.trim();
+          const password = document.getElementById("createPassword").value;
+
+          if (!name) {
+            alert("Please enter your name");
+            return;
+          }
+          if (password.length < 4) {
+            alert("Password must be at least 4 characters");
+            return;
+          }
+          if (!currentRole) {
+            alert("Please select your role");
+            return;
+          }
+
+          userName = name;
+          roomPassword = password;
+
+          socket.emit("create_room", { password: password });
+        });
+
+      socket.on("room_created", function (data) {
+        roomId = data.room_id;
+        document.getElementById("newRoomId").textContent = roomId;
+        document.getElementById("roomCreated").style.display = "block";
+        document.getElementById("btnCreate").style.display = "none";
+      });
+
+      socket.on("room_error", function (data) {
+        alert(data.error);
+      });
+
+      function copyRoomId() {
+        navigator.clipboard.writeText(roomId);
+        alert("Room ID copied!");
+      }
+
+      // Enter room after creation
+      document
+        .getElementById("btnEnterRoom")
+        .addEventListener("click", function () {
+          socket.emit("join_room_secure", {
+            room: roomId,
+            password: roomPassword,
+            name: userName,
+            role: currentRole,
+            mode: "video",
+          });
+        });
+
+      // Join existing room
+      document.getElementById("btnJoin").addEventListener("click", function () {
+        userName = document.getElementById("joinName").value.trim();
+        roomId = document.getElementById("joinRoomId").value.trim();
+        roomPassword = document.getElementById("joinPassword").value;
+
+        if (!userName || !roomId || !roomPassword) {
+          alert("Please fill all fields");
+          return;
+        }
+        if (!currentRole) {
+          alert("Please select your role");
+          return;
+        }
+
+        socket.emit("join_room_secure", {
+          room: roomId,
+          password: roomPassword,
+          name: userName,
+          role: currentRole,
+          mode: "video",
+        });
+      });
+
+      socket.on("join_failed", function (data) {
+        alert("Failed to join: " + data.error);
+      });
+
+      socket.on("join_success", async function (data) {
+        authToken = data.token;
+        currentRole = data.role;
+
+        try {
+          sessionKey = await deriveSessionKey(data.room_id, roomPassword);
+        } catch (err) {
+          console.error("Failed to derive session key:", err);
+          alert("Could not initialize room encryption");
+          location.reload();
+          return;
+        }
+
+        document.getElementById("setupScreen").style.display = "none";
+        document.getElementById("conferenceScreen").style.display = "flex";
+        document.getElementById("encryptionIndicator").style.display = "flex";
+
+        document.getElementById("roomName").textContent =
+          `Room: ${data.room_id.substring(0, 8)}...`;
+        document.getElementById("userRole").textContent =
+          `Role: ${data.role} | ${data.encryption}`;
+        document.getElementById("yourRole").textContent = data.role;
+        document.getElementById("keyFingerprint").textContent =
+          `Key: ${data.key_fingerprint}`;
+        document.getElementById("participantCount").textContent =
+          data.participants;
+
+        // Load message history
+        if (data.message_history && data.message_history.length > 0) {
+          document.getElementById("chatMessages").innerHTML = "";
+          data.message_history.forEach((msg) => addMessage(msg));
+        }
+
+        // Start camera for everyone
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          localVideo.srcObject = localStream;
+          localVideo.play();
+          streaming = true;
+
+          localVideo.addEventListener("playing", () => {
+            localCanvas.width = localVideo.videoWidth;
+            localCanvas.height = localVideo.videoHeight;
+            sendVideoFrames();
+          });
+        } catch (err) {
+          console.error("Camera error:", err);
+          alert("Could not access camera");
+        }
+      });
+
+      function sendVideoFrames() {
+        if (!streaming) return;
+
+        ctx.drawImage(localVideo, 0, 0);
+        const dataUrl = localCanvas.toDataURL("image/jpeg", 0.6);
+
+        socket.emit("video_frame_secure", {
+          image: dataUrl,
+          room: roomId,
+          token: authToken,
+        });
+
+        setTimeout(() => requestAnimationFrame(sendVideoFrames), 100);
+      }
+
+      // Receive encrypted video
+      socket.on("video_stream_secure", async function (data) {
+        const feedImg = document.getElementById("remoteVideoFeed");
+        const remoteLabel = document.getElementById("remoteLabel");
+        const remoteGesture = document.getElementById("remoteGesture");
+
+        if (data.encrypted_video) {
+          try {
+            const decryptedFrame = await decryptVideoPacket(
+              data.encrypted_video
+            );
+            updateRemoteFeedImage(decryptedFrame);
+          } catch (err) {
+            console.error("Failed to decrypt remote frame:", err);
+            remoteLabel.innerHTML =
+              '<i class="fa-solid fa-triangle-exclamation"></i> Unable to decrypt feed';
+            return;
+          }
+        }
+
+        remoteLabel.innerHTML = `<i class="fa-solid fa-lock"></i> ${data.sender} (${data.role})`;
+
+        if (data.role === "signer" && data.gesture) {
+          remoteGesture.style.display = "block";
+          remoteGesture.querySelector("span").textContent =
+            `${data.gesture} (${(data.confidence * 100).toFixed(0)}%)`;
+        }
+      });
+
+      // Messages
+      socket.on("new_message", function (msg) {
+        addMessage(msg);
+      });
+
+      function addMessage(msg) {
+        const messagesDiv = document.getElementById("chatMessages");
+        if (messagesDiv.querySelector("p")) {
+          messagesDiv.innerHTML = "";
+        }
+
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message ${msg.type}`;
+        msgDiv.innerHTML = `
+                <div class="message-info">
+                    <span class="message-sender">${msg.sender}</span>
+                    <span class="message-type">${msg.type === "sign" ? "✋" : "🎤"}</span>
+                </div>
+                <span class="message-content">${msg.message}</span>
+                <span class="message-time">${msg.timestamp}</span>
+                <button class="btn-speak" onclick="speakMessage('${msg.message.replace(/'/g, "\\'")}')">
+                    <i class="fa-solid fa-volume-up"></i>
+                </button>
+            `;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      function speakMessage(text) {
+        if ("speechSynthesis" in window) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      // Send message
+      document.getElementById("btnSend").addEventListener("click", function () {
+        const input = document.getElementById("voiceInput");
+        const message = input.value.trim();
+        if (!message) return;
+
+        socket.emit("voice_message_secure", {
+          room: roomId,
+          message: message,
+          token: authToken,
+        });
+
+        input.value = "";
+      });
+
+      document
+        .getElementById("voiceInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") document.getElementById("btnSend").click();
+        });
+
+      // Voice recognition
+      if ("webkitSpeechRecognition" in window) {
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+
+        document
+          .getElementById("btnVoice")
+          .addEventListener("click", function () {
+            if (this.classList.contains("recording")) {
+              recognition.stop();
+              this.classList.remove("recording");
+              this.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+            } else {
+              recognition.start();
+              this.classList.add("recording");
+              this.innerHTML = '<i class="fa-solid fa-stop"></i>';
+            }
+          });
+
+        recognition.onresult = function (event) {
+          document.getElementById("voiceInput").value =
+            event.results[0][0].transcript;
+          document.getElementById("btnVoice").classList.remove("recording");
+          document.getElementById("btnVoice").innerHTML =
+            '<i class="fa-solid fa-microphone"></i>';
+        };
+      }
+
+      // Participant events
+      socket.on("participant_joined", function (data) {
+        document.getElementById("participantCount").textContent =
+          data.participants;
+        addSystemMessage(`${data.name} joined as ${data.role}`);
+      });
+
+      socket.on("participant_left", function (data) {
+        document.getElementById("participantCount").textContent =
+          data.participants;
+        addSystemMessage(`${data.name} left`);
+      });
+
+      function addSystemMessage(text) {
+        const messagesDiv = document.getElementById("chatMessages");
+        const div = document.createElement("div");
+        div.style.textAlign = "center";
+        div.style.color = "var(--text-muted)";
+        div.style.fontSize = "0.75rem";
+        div.style.padding = "0.5rem";
+        div.innerHTML = `<i class="fa-solid fa-info-circle"></i> ${text}`;
+        messagesDiv.appendChild(div);
+      }
+
+      // Leave
+      document
+        .getElementById("btnLeave")
+        .addEventListener("click", function () {
+          socket.emit("leave_room_secure", { room: roomId });
+          if (localStream) localStream.getTracks().forEach((t) => t.stop());
+          if (currentRemoteFrameUrl) URL.revokeObjectURL(currentRemoteFrameUrl);
+          location.reload();
+        });
+
+      // Auth error
+      socket.on("auth_error", function (data) {
+        alert("Authentication error: " + data.error);
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

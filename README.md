@@ -23,7 +23,7 @@ Echo-Sign 2.0 addresses the need for privacy-first, low-bandwidth accessibility 
 
 ## 🏗️ System Architecture
 
-### Web Interface Mode (Primary - `app_secure.py`)
+### Web Interface Mode (Primary - `app_conference_secure.py`)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -32,8 +32,8 @@ Echo-Sign 2.0 addresses the need for privacy-first, low-bandwidth accessibility 
 │                                                                  │
 │   ┌─────────────┐       WebSocket        ┌─────────────────┐    │
 │   │   Browser   │◄─────────────────────►│  Flask Server   │    │
-│   │  (Signer)   │    Socket.IO           │  (app_secure)   │    │
-│   │  + Camera   │                        │                 │    │
+│   │  (Signer)   │    Socket.IO           │(app_conference) │    │
+│   │  + Camera   │                        │    _secure)     │    │
 │   └─────────────┘                        │  ┌───────────┐  │    │
 │                                          │  │ MediaPipe │  │    │
 │   ┌─────────────┐       WebSocket        │  │   + ML    │  │    │
@@ -48,7 +48,7 @@ Echo-Sign 2.0 addresses the need for privacy-first, low-bandwidth accessibility 
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Encryption Flow in `app_secure.py`
+### Encryption Flow in `app_conference_secure.py`
 
 ```
 1. User joins room → SecureRoom created
@@ -62,7 +62,7 @@ Echo-Sign 2.0 addresses the need for privacy-first, low-bandwidth accessibility 
 
 ## 🔧 Technical Implementation
 
-### Web Application (`Sign2Text/app_secure.py`)
+### Web Application (`Sign2Text/app_conference_secure.py`)
 
 | Component            | Implementation                         | Lines          |
 | -------------------- | -------------------------------------- | -------------- |
@@ -77,8 +77,8 @@ Echo-Sign 2.0 addresses the need for privacy-first, low-bandwidth accessibility 
 
 | Module                 | Used In            | Purpose                                |
 | ---------------------- | ------------------ | -------------------------------------- |
-| **`aes_encryptor.py`** | `app_secure.py` ✅ | AES-256-GCM encrypt/decrypt            |
-| **`dh_exchange.py`**   | `app_secure.py` ✅ | HKDF key derivation                    |
+| **`aes_encryptor.py`** | `app_conference_secure.py` ✅ | AES-256-GCM encrypt/decrypt            |
+| **`dh_exchange.py`**   | `app_conference_secure.py` ✅ | HKDF key derivation                    |
 | **`rsa_manager.py`**   | P2P clients only   | Identity verification (not in web app) |
 
 ### ISL Recognition (`Sign2Text/`)
@@ -88,7 +88,7 @@ Echo-Sign 2.0 addresses the need for privacy-first, low-bandwidth accessibility 
 | **Model**     | `model.p`                 | Random Forest classifier (33 gestures) |
 | **Training**  | `train_classifier.py`     | Sklearn RandomForestClassifier         |
 | **Inference** | `inference_classifier.py` | Standalone camera inference            |
-| **Web App**   | `app_secure.py`           | Flask + Socket.IO + Encryption         |
+| **Web App**   | `app_conference_secure.py`           | Flask + Socket.IO + Encryption         |
 
 ### Supported Gestures (33 total)
 
@@ -109,14 +109,16 @@ pip install opencv-python mediapipe flask flask-socketio cryptography numpy
 
 ```bash
 cd Sign2Text
-python app_secure.py
-# Open http://localhost:5000 in browser
+python app_conference_secure.py
+# Open https://localhost:5000 in browser
+# (Note: Accept the self-signed SSL certificate warning)
 ```
 
-**Or with dependency checking:**
+**Or generate SSL certs first:**
 
 ```bash
-python run_secure.py
+python scripts/generate_ssl.py
+python app_conference_secure.py
 ```
 
 ### How to Use
@@ -138,19 +140,18 @@ python run_secure.py
 
 ```
 Echo-Sign/
-├── Sign2Text/                  # Main Application
-│   ├── app_secure.py          # Flask + AES-256-GCM encryption ⭐
-│   ├── app.py                 # Basic Flask app (no encryption)
-│   ├── model.p                # Trained ISL classifier
-│   ├── run_secure.py          # Launcher with dependency check
+├── Sign2Text/                        # Main Application
+│   ├── app_conference_secure.py     # Flask + HTTPS + AES-256-GCM encryption ⭐
+│   ├── model.p                      # Trained ISL classifier
+│   ├── scripts/
+│   │   └── generate_ssl.py          # SSL certificate generator
 │   └── templates/
-│       ├── index_secure.html  # Secure UI with badges ⭐
-│       └── index.html         # Basic UI
+│       └── conference_secure.html   # Secure conferencing UI ⭐
 │
-├── crypto/                     # Cryptography Modules
-│   ├── aes_encryptor.py       # AES-256-GCM (used in app_secure.py) ⭐
-│   ├── dh_exchange.py         # HKDF key derivation (used in app_secure.py) ⭐
-│   └── rsa_manager.py         # RSA keys (for P2P clients only)
+├── crypto/                           # Cryptography Modules
+│   ├── aes_encryptor.py             # AES-256-GCM (used in app) ⭐
+│   ├── dh_exchange.py               # HKDF key derivation (used in app) ⭐
+│   └── rsa_manager.py               # RSA keys (for P2P clients only)
 │
 ├── networking/                 # Network Layer (for P2P mode)
 │   ├── signaling_server.py    # TCP concurrent server
@@ -166,38 +167,30 @@ Echo-Sign/
 
 ---
 
-## 🔒 Security in `app_secure.py`
+## 🔒 Security in `app_conference_secure.py`
 
 ### What's Actually Implemented
 
-| Feature                     | Status        | Code Location                 |
-| --------------------------- | ------------- | ----------------------------- |
-| **AES-256-GCM Encryption**  | ✅ Used       | Lines 95, 105-106             |
-| **HKDF Key Derivation**     | ✅ Used       | Lines 90-94                   |
-| **Per-room Session Keys**   | ✅ Used       | Lines 85-96                   |
-| **Packet Sequence Numbers** | ✅ Used       | Lines 104-105                 |
-| **RSA Identity**            | ❌ Not used   | Only in P2P clients           |
-| **Full DH Exchange**        | ❌ Simplified | Uses room ID as shared secret |
+| Feature                     | Status        | Description                           |
+| --------------------------- | ------------- | ------------------------------------- |
+| **HTTPS/TLS Transport**     | ✅ Complete   | Self-signed SSL certificates          |
+| **AES-256-GCM Encryption**  | ✅ Complete   | Video frame encryption                |
+| **Password-Protected Rooms**| ✅ Complete   | PBKDF2-SHA256 key derivation          |
+| **JWT Authentication**      | ✅ Complete   | Token-based room access               |
+| **Rate Limiting**           | ✅ Complete   | 5 failed attempts = 5 min lockout     |
+| **Sequence Numbers**        | ✅ Complete   | Replay attack protection              |
 
-### Key Derivation (Line 85-96)
-
-```python
-# In SecureRoom.derive_session_key():
-room_secret = f"echo-sign-room-{self.room_id}-secret".encode()
-self.session_key = self.dh.derive_key(
-    shared_secret=room_secret,
-    key_length=32,  # 256 bits
-    info=b'echo-sign-web-aes-key'
-)
-self.encryptor = AESEncryptor(self.session_key)
-```
-
-### Encryption Flow (Lines 98-106)
+### Security Features
 
 ```python
-# In SecureRoom.encrypt_data():
-plaintext = json.dumps(data).encode()
-self.packet_count += 1
+# Password-based key derivation with PBKDF2
+key = pbkdf2_sha256(password, room_id, iterations=100000)
+
+# JWT for authenticated sessions
+token = jwt.encode({'room_id': room_id, 'exp': expiry}, SECRET_KEY)
+
+# AES-256-GCM for video encryption
+encrypted_frame = aes_gcm.encrypt(frame_data, nonce, auth_tag)
 ciphertext = self.encryptor.encrypt(plaintext, seq_num=self.packet_count)
 return base64.b64encode(ciphertext).decode()
 ```
