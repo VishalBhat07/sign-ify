@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Sign2Text - Sign Language to Text Translation</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="" name="keywords" />
+    <meta content="" name="description" />
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Raleway:wght@600;800&display=swap"
+        rel="stylesheet" />
+
+    <!-- Icon Font Stylesheet -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <!-- Libraries Stylesheet -->
+    <link href="https://krishnaraj12.github.io/project/lib/lightbox/css/lightbox.min.css" rel="stylesheet" />
+    <link href="https://krishnaraj12.github.io/project/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet" />
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="https://krishnaraj12.github.io/project/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Template Stylesheet -->
+    <link href="https://krishnaraj12.github.io/project/css/style.css" rel="stylesheet" />
+</head>
+
+<style>
+    /* Resetting */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        background: linear-gradient(to bottom, #000428, #004683);
+    }
+
+    .wrapper {
+        margin-top: 100px;
+    }
+
+    .wrapper .grid .container-lg-4 {
+        display: flex;
+        justify-content: center;
+    }
+
+    .hero-header1,
+    .page-header {
+        margin-top: 101px !important;
+    }
+
+    .hero-header1 {
+        background: linear-gradient(rgb(219 234 253 / 24%), rgb(116 89 122 / 19%)),
+            url("https://coolbackgrounds.io/images/backgrounds/index/ranger-4df6c1b6.png");
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+    }
+
+    .profile-card {
+        position: relative;
+        padding: 0;
+        margin: 0 !important;
+        border-radius: 20px;
+        overflow: hidden;
+        max-width: 280px;
+        max-height: 340px;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-card .profile-image {
+        width: 100%;
+        max-height: 340px;
+    }
+
+    .profile-card .profile-image img {
+        width: 100%;
+        max-height: 340px;
+        object-fit: cover;
+    }
+
+    .profile-card .profile-content {
+        position: absolute;
+        bottom: -180px;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(15px);
+        min-height: 140px;
+        width: 100%;
+        transition: bottom 0.4s ease-in;
+        box-shadow: 0 -10px 10px rgba(255, 255, 255, 0.1);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .profile-card:hover .profile-content {
+        bottom: 0px;
+    }
+
+    .profile-card:hover .profile-content h4,
+    .profile-card:hover .profile-content h5 {
+        transform: translateY(10px);
+        opacity: 1;
+    }
+
+    .profile-card .profile-content h4,
+    .profile-card .profile-content h5 {
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        text-align: center;
+        transition: 0.8s;
+        font-weight: 500;
+        opacity: 0;
+        transform: translateY(-40px);
+        transition-delay: 0.2s;
+    }
+
+    .profile-card .profile-content h5 {
+        transition: 0.5s;
+        font-weight: 200;
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+    }
+
+    .profile-card .profile-content .social-links {
+        list-style: none;
+        padding: 0;
+    }
+
+    .profile-card .profile-content .social-links li {
+        margin: 10px;
+        transition: 0.5s;
+        transition-delay: calc(0.15s * var(--i));
+        transform: translateY(50px);
+    }
+
+    .profile-card:hover .profile-content .social-links li {
+        transform: translateY(20px);
+    }
+
+    .profile-card .profile-content .social-links li a {
+        color: #fff;
+    }
+
+    .profile-card .profile-content .social-links li a span {
+        font-size: 1.3rem;
+    }
+
+    @media (max-width: 991.5px) {
+        .wrapper {
+            margin-top: 20px;
+        }
+
+        .wrapper .grid .container-lg-4 {
+            margin: 20px 0px;
+        }
+    }
+</style>
+
+<body>
+    <!-- Navbar start -->
+    <div class="container-fluid fixed-top" style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        z-index: 1030;
+      ">
+        <div class="container px-0" style="display: flex; justify-content: center; width: 100%">
+            <nav class="navbar navbar-light bg-white navbar-expand-lg" style="
+            width: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+                <a href="#" class="navbar-brand" style="display: flex; align-items: center; text-decoration: none">
+                    <img src="https://bcebakhtiyarpur.ac.in/wp-content/uploads/2019/01/logo-bced-f.png"
+                        alt="College Logo" style="width: 70px; height: 70px; margin-right: 15px" />
+                    <h1 class="text-primary display-6" style="margin: 0; font-size: 1.5rem">
+                        Bakhtiyarpur College Of Engineering, Patna
+                    </h1>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Navbar End -->
+
+    <div class="container-fluid py-5 mb-5 hero-header1">
+        <div class="container py-5">
+            <div class="row g-5 align-items-center">
+                <!-- Image Carousel Column -->
+                <div class="col-md-12 col-lg-6">
+                    <h4 class="mb-3 text">Convert Sign language to Text Live</h4>
+                    <h1 class="mb-5 display-3 text-primary"
+                        style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;">
+                        Sign-2-Text
+                    </h1>
+                    <!-- Carousel -->
+                    <div id="carouselId" class="carousel slide position-relative" data-bs-interval="false">
+                        <div class="carousel-inner" role="listbox">
+                            <div class="carousel-item active rounded">
+                                <img src="https://raw.githubusercontent.com/uzibytes/Sign2Text/master/hand-signs-of-the-ASL-Language.png"
+                                    class="img-fluid w-100 h-100 bg-secondary rounded" alt="First slide"
+                                    style="width: 100%; height: 100%; border-radius: 10px; border: 2px solid #000;" />
+                            </div>
+                            <div class="carousel-item rounded">
+                                <img src="https://i.ibb.co/ZJ7858c/customsl.jpg"
+                                    class="img-fluid w-100 h-100 bg-secondary rounded" alt="Second slide"
+                                    style="width: 100%; height: 100%; border-radius: 10px; border: 2px solid #000;" />
+                            </div>
+                        </div>
+                        <!-- Carousel Controls -->
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselId"
+                            data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carouselId"
+                            data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Video Feed Column -->
+                <div class="col-md-12 col-lg-6" style="margin-top: 8rem !important;">
+                    <img src="{{ url_for('video_feed') }}" class="img-fluid w-100 h-100 bg-secondary rounded"
+                        alt="Video Feed"
+                        style="width: 100%; height: 100%; border-radius: 10px; border: 2px solid #000;" />
+                    <!-- Controls -->
+                    <div class="controls d-flex align-items-center mt-3">
+                        <input type="text" id="translatedText" class="form-control me-2"
+                            placeholder="Translated text will appear here" aria-label="Translated text">
+                        <button type="button" id="resetButton" class="btn btn-danger me-2">Reset</button>
+                        <button type="button" id="speakButton" class="btn btn-primary">Speak</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Disable automatic cycling
+        var carouselElement = document.getElementById("carouselId");
+        var carousel = new bootstrap.Carousel(carouselElement, {
+            interval: false,
+            wrap: false,
+        });
+    </script>
+
+    <!-- Hero End -->
+
+    <!-- Vesitable Shop Start-->
+    <div class="container-fluid vesitable featurs py-5" style="display: flex; justify-content: center">
+        <div class="col-lx-6 col-lg-3">
+            <h4 class="text-secondary pb-5 display-6 text-center">Project Guide</h4>
+            <div class="featurs-item text-center rounded bg-light p-4">
+                <div class="featurs-icon btn-square rounded-circle bg-secondary mb-5 mx-auto">
+                    <img src="https://raw.githubusercontent.com/krishnaraj12/project/main/img/Shashi.png" alt=""
+                        style="width: 200; height: 200px" />
+                </div>
+                <div class="featurs-content text-center">
+                    <br />
+                    <h5>DR. SHASHI RAJ</h5>
+                    <p class="mb-0">Department of Computer Science & Engineering</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vesitable Shop End -->
+
+    <!-- Featurs Section Start -->
+    <div class="container-fluid featurs py-5">
+        <h4 class="text-secondary text-center display-6">Students</h4>
+        <div class="container py-5">
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="featurs-item text-center rounded bg-light p-4">
+                        <div class="featurs-icon btn-square rounded-circle bg-secondary mb-5 mx-auto">
+                            <img src="https://raw.githubusercontent.com/krishnaraj12/project/main/img/krishna.png" alt="" style="width: 200px; height: 200px" />
+                        </div>
+                        <div class="featurs-content text-center">
+                            <h5>KRISHNA RAJ 
+                                <a href="https://www.linkedin.com/in/iamkrishnaraj/" target="_blank">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="LinkedIn" style="width: 20px; height: 20px; margin-left: 5px;" />
+                                </a>
+                            </h5>
+                            <p class="mb-0">20105126040</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="featurs-item text-center rounded bg-light p-4">
+                        <div class="featurs-icon btn-square rounded-circle bg-secondary mb-5 mx-auto">
+                            <img src="https://raw.githubusercontent.com/krishnaraj12/project/main/img/ujjwal.png" alt="" style="width: 200px; height: 200px" />
+                        </div>
+                        <div class="featurs-content text-center">
+                            <h5>UJJWAL RAJ 
+                                <a href="https://www.linkedin.com/in/uraj/" target="_blank">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="LinkedIn" style="width: 20px; height: 20px; margin-left: 5px;" />
+                                </a>
+                            </h5>
+                            <p class="mb-0">20105126034</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="featurs-item text-center rounded bg-light p-4">
+                        <div class="featurs-icon btn-square rounded-circle bg-secondary mb-5 mx-auto">
+                            <img src="https://raw.githubusercontent.com/krishnaraj12/project/main/img/puri3.png" alt="" style="width: 200px; height: 200px" />
+                        </div>
+                        <div class="featurs-content text-center">
+                            <h5>RAJNISH PURI 
+                                <a href="https://www.linkedin.com/in/rajnish-puri-804b11209/" target="_blank">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="LinkedIn" style="width: 20px; height: 20px; margin-left: 5px;" />
+                                </a>
+                            </h5>
+                            <p class="mb-0">20105126031</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="featurs-item text-center rounded bg-light p-4">
+                        <div class="featurs-icon btn-square rounded-circle bg-secondary mb-5 mx-auto">
+                            <img src="https://raw.githubusercontent.com/krishnaraj12/project/main/img/prasa.png" alt="" style="width: 200px; height: 200px" />
+                        </div>
+                        <div class="featurs-content text-center">
+                            <h5>PRASHANT RAJ 
+                                <a href="https://www.linkedin.com/in/pkprashant566" target="_blank">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="LinkedIn" style="width: 20px; height: 20px; margin-left: 5px;" />
+                                </a>
+                            </h5>
+                            <p class="mb-0">20105126043</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Featurs Section End -->
+
+    <!-- Copyright Start -->
+    <div class="container-fluid copyright bg-dark py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
+                    <span class="text-light">
+                        <a href="#"><i class="fas fa-copyright text-light me-2"></i></a>
+                        All rights reserved 2024. Bihar Engineering University
+                    </span>
+                </div>
+                <div class="col-md-4 my-auto text-center text-white">
+                    <a href="https://github.com/uzibytes/sign2text" target="_blank" class="text-light text-decoration-none">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" alt="GitHub" style="width: 20px; height: 20px; margin-right: 5px;" />
+                        Source Code
+                    </a>
+                </div>
+                <div class="col-md-4 my-auto text-center text-md-end text-white">
+                    Developed for B.Tech Final Year Project 2024.
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Copyright End -->
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary border-3 border-primary rounded-circle back-to-top"><i
+            class="fa fa-arrow-up"></i></a>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="https://krishnaraj12.github.io/project/lib/lightbox/js/lightbox.min.js"></script>
+    <script src="https://krishnaraj12.github.io/project/lib/owlcarousel/owl.carousel.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="https://krishnaraj12.github.io/project/js/main.js"></script>
+
+    
+    <!-- Add this script at the end of your HTML before the closing body tag -->
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // Update the translatedText input with the prediction
+        socket.on('prediction', function (data) {
+            const translatedText = document.getElementById('translatedText');
+            translatedText.value = data.text;
+        });
+
+        // Reset button functionality
+        document.getElementById('resetButton').addEventListener('click', function () {
+            document.getElementById('translatedText').value = '';
+        });
+
+
+        document.getElementById('speakButton').addEventListener('click', function() {
+      const text = document.getElementById('translatedText').value;
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Set voice and speed
+      const voices = speechSynthesis.getVoices();
+      utterance.voice = voices.find(voice => voice.name === 'Google UK English Female') || voices[0]; // Choose a specific voice
+      utterance.rate = 1.0; // Speed (0.1 to 10)
+      
+      speechSynthesis.speak(utterance);
+    });
+    </script>
+
+</body>
+
+</html>
