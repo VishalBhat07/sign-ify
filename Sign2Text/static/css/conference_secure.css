@@ -1,0 +1,500 @@
+:root {
+  --bg: #09101b;
+  --surface: rgba(18, 28, 45, 0.86);
+  --surface-alt: rgba(8, 13, 24, 0.9);
+  --primary: #18b67a;
+  --secondary: #2f80ed;
+  --danger: #ef4444;
+  --text: #eef4ff;
+  --text-muted: #93a4bd;
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(24, 182, 122, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(47, 128, 237, 0.18), transparent 32%),
+    linear-gradient(180deg, #07111d 0%, #09101b 100%);
+  color: var(--text);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.security-banner {
+  padding: 0.75rem 1rem;
+  text-align: center;
+  background: linear-gradient(90deg, #18b67a, #2f80ed);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.setup-screen,
+.conference-screen {
+  min-height: calc(100vh - 48px);
+}
+
+.setup-screen {
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.setup-card {
+  width: min(100%, 520px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 2rem;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+}
+
+.setup-card h1 {
+  font-size: 1.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.setup-card p {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.tab-buttons,
+.role-selector,
+.status-badges,
+.chat-input,
+.conference-main,
+.video-section,
+.video-overlay {
+  display: flex;
+}
+
+.tab-buttons,
+.video-section {
+  gap: 1rem;
+}
+
+.tab-btn,
+.role-option,
+.btn,
+.btn-leave,
+.btn-send,
+.btn-voice,
+.copy-btn {
+  border: none;
+  cursor: pointer;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tab-btn.active,
+.role-option.selected {
+  background: rgba(24, 182, 122, 0.16);
+  color: var(--text);
+  outline: 1px solid rgba(24, 182, 122, 0.5);
+}
+
+.tab-content {
+  display: none;
+  margin-top: 1.5rem;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+}
+
+input:focus {
+  outline: 1px solid rgba(47, 128, 237, 0.5);
+}
+
+.role-selector {
+  gap: 0.8rem;
+}
+
+.role-option {
+  flex: 1;
+  padding: 0.95rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn,
+.btn-send,
+.btn-voice,
+.copy-btn,
+.btn-leave {
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+}
+
+.btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.room-created {
+  margin-top: 1rem;
+}
+
+.room-id-display {
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.24);
+  text-align: center;
+}
+
+.room-id-display p {
+  margin-bottom: 0.5rem;
+}
+
+.room-id-display code {
+  font-size: 1rem;
+  word-break: break-all;
+  color: #6ee7b7;
+}
+
+.copy-btn {
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.conference-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.conference-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: rgba(7, 15, 27, 0.88);
+  border-bottom: 1px solid var(--border);
+}
+
+.conference-info small {
+  color: var(--text-muted);
+}
+
+.status-badges {
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(24, 182, 122, 0.12);
+  border: 1px solid rgba(24, 182, 122, 0.28);
+  color: #8be0bc;
+  font-size: 0.8rem;
+}
+
+.btn-leave {
+  padding: 0.8rem 1rem;
+  background: var(--danger);
+}
+
+.conference-main {
+  flex: 1;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: flex-start;
+}
+
+.video-section {
+  flex: 1;
+  gap: 1rem;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.video-container,
+.chat-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.video-container {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  background: black;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-container.local video {
+  object-fit: contain;
+}
+
+.isl-rendered-overlay,
+.isl-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.isl-rendered-overlay {
+  object-fit: contain;
+}
+
+
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.video-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  gap: 0.5rem;
+  flex-direction: column;
+}
+
+.video-badge {
+  padding: 0.45rem 0.7rem;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 10px;
+  font-size: 0.78rem;
+}
+
+.chat-section {
+  width: 360px;
+  flex: 0 0 360px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 126px);
+}
+
+.chat-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem 1rem;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid var(--primary);
+}
+
+.message.voice {
+  border-left-color: var(--secondary);
+}
+
+.message-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.message-content {
+  word-break: break-word;
+}
+
+.message-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.message-row .message-content {
+  flex: 1;
+}
+
+.btn-speak {
+  border: none;
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(47, 128, 237, 0.18);
+  color: #9dc3ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-speak:hover {
+  background: rgba(47, 128, 237, 0.28);
+}
+
+.system-message {
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.chat-input {
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.chat-input input {
+  flex: 1;
+}
+
+.btn-send,
+.btn-voice {
+  padding: 0.85rem 1rem;
+}
+
+.btn-send {
+  background: var(--primary);
+}
+
+.btn-voice {
+  background: var(--secondary);
+}
+
+.btn-voice.recording {
+  background: var(--danger);
+}
+
+.toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: 320px;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: rgba(7, 15, 27, 0.92);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 1100px) {
+  .conference-main {
+    flex-direction: column;
+  }
+
+  .chat-section {
+    width: 100%;
+    min-height: 320px;
+  }
+
+  .video-section {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 700px) {
+  .conference-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-badges {
+    width: 100%;
+  }
+
+  .video-container {
+    min-height: 260px;
+  }
+}
