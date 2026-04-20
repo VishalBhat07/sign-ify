@@ -6,3 +6,5 @@ Sign2Text/data
 __pycache__
 *.pyc
 *.pem
+
+*.onnx

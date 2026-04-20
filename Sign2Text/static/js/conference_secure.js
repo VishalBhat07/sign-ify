@@ -24,6 +24,19 @@
     pendingSignals: [],
   };
 
+  let ortSession = null;
+  let handsTracking = null;
+  let cameraInstance = null;
+  let currentGesture = null;
+  let gestureStartTime = 0;
+  
+  const labelsDict = {
+      0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8: 'I', 9: 'J', 
+      10: 'K', 11: 'L', 12: 'M', 13: 'N', 14: 'O', 15: 'P', 16: 'Q', 17: 'R', 18: 'S', 
+      19: 'T', 20: 'U', 21: 'V', 22: 'W', 23: 'X', 24: 'Y', 25: 'Z', 26: 'Hello', 
+      27: 'Done', 28: 'Thank You', 29: 'I Love you', 30: 'Sorry', 31: 'Please', 32: 'You are welcome.'
+  };
+
   const elements = {
     setupScreen: document.getElementById("setupScreen"),
     conferenceScreen: document.getElementById("conferenceScreen"),
@@ -337,54 +350,153 @@
   }
 
   function stopIslCapture() {
-    if (state.islIntervalId) {
-      window.clearInterval(state.islIntervalId);
-      state.islIntervalId = null;
+    if (cameraInstance) {
+      cameraInstance.stop();
+      cameraInstance = null;
     }
-    state.islRequestInFlight = false;
     clearIslOverlay();
   }
 
-  function startIslCapture() {
+  async function startIslCapture() {
     stopIslCapture();
     elements.islStatusBadge.innerHTML =
-      '<i class="fa-solid fa-hands-asl-interpreting"></i> <span>ISL monitoring active</span>';
+      '<i class="fa-solid fa-hands-asl-interpreting"></i> <span>ISL Model Loading...</span>';
 
-    state.islIntervalId = window.setInterval(async () => {
-      if (
-        !state.localStream ||
-        state.islRequestInFlight ||
-        !state.sessionKey ||
-        elements.localVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
-      ) {
+    if (!ortSession) {
+      try {
+        ortSession = await ort.InferenceSession.create('/static/model.onnx');
+      } catch (e) {
+        console.error("Failed to load ONNX model:", e);
+        elements.islStatusBadge.innerHTML =
+          '<i class="fa-solid fa-triangle-exclamation"></i> <span>Model load failed</span>';
         return;
       }
+    }
 
-      const width = 320;
-      const height = 240;
-      if (!elements.localVideo.videoWidth || !elements.localVideo.videoHeight) {
-        return;
-      }
-
-      elements.islCaptureCanvas.width = width;
-      elements.islCaptureCanvas.height = height;
-      islCaptureContext.drawImage(elements.localVideo, 0, 0, width, height);
-      const blob = await new Promise((resolve) =>
-        elements.islCaptureCanvas.toBlob(resolve, "image/jpeg", 0.6)
-      );
-      if (!blob) {
-        return;
-      }
-
-      state.islRequestInFlight = true;
-      const imageBytes = new Uint8Array(await blob.arrayBuffer());
-      const packet = await encryptPacket(imageBytes);
-      socket.emit("isl_frame_secure", {
-        room: state.roomId,
-        token: state.authToken,
-        encrypted_frame: bytesToBase64(packet),
+    if (!handsTracking) {
+      handsTracking = new window.Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       });
-    }, 450);
+      handsTracking.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.3,
+        minTrackingConfidence: 0.3
+      });
+      handsTracking.onResults(onHandsResults);
+    }
+
+    cameraInstance = new window.Camera(elements.localVideo, {
+      onFrame: async () => {
+        await handsTracking.send({image: elements.localVideo});
+      },
+      width: 1280,
+      height: 720
+    });
+    cameraInstance.start();
+    elements.islStatusBadge.innerHTML =
+      '<i class="fa-solid fa-hands-asl-interpreting"></i> <span>ISL monitoring active</span>';
+  }
+
+  async function broadcastSemanticEvent(gesture, confidence) {
+      elements.islStatusBadge.innerHTML = 
+          `<i class="fa-solid fa-hands-asl-interpreting"></i> <span>Detected: ${gesture} (${confidence}%)</span>`;
+      
+      const payloadObj = {
+          type: "gesture_change",
+          sender: state.userName,
+          gesture: gesture,
+          confidence: confidence,
+          timestamp: new Date().toLocaleTimeString()
+      };
+      const payload = JSON.stringify(payloadObj);
+
+      const encrypted = await encryptPacket(new TextEncoder().encode(payload));
+      
+      // Show it in our local chat
+      addMessage({
+          sender: state.userName + " (You)",
+          message: gesture,
+          type: "sign",
+          timestamp: payloadObj.timestamp
+      });
+      
+      // Send over all DataChannels
+      for (const [peerSid, pc] of state.peerConnections.entries()) {
+          const dc = pc.semanticChannel;
+          if (dc && dc.readyState === "open") {
+              dc.send(encrypted);
+          }
+      }
+  }
+
+  async function onHandsResults(results) {
+    const canvasCtx = elements.islOverlayCanvas.getContext("2d");
+    elements.islOverlayCanvas.width = elements.localVideo.videoWidth || 1280;
+    elements.islOverlayCanvas.height = elements.localVideo.videoHeight || 720;
+    
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, elements.islOverlayCanvas.width, elements.islOverlayCanvas.height);
+    
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      for (const landmarks of results.multiHandLandmarks) {
+        window.drawConnectors(canvasCtx, landmarks, window.HAND_CONNECTIONS,
+                       {color: '#3cffd0', lineWidth: 5});
+        window.drawLandmarks(canvasCtx, landmarks, {color: '#5200ff', lineWidth: 3});
+      }
+    }
+    canvasCtx.restore();
+    elements.islOverlayCanvas.classList.remove("hidden");
+
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0 || !ortSession) {
+      return;
+    }
+
+    const hand = results.multiHandLandmarks[0];
+    let x_ = [];
+    let y_ = [];
+    for (let i = 0; i < hand.length; i++) {
+       x_.push(hand[i].x);
+       y_.push(hand[i].y);
+    }
+    const minX = Math.min(...x_);
+    const minY = Math.min(...y_);
+    
+    let dataAux = [];
+    for (let i = 0; i < hand.length; i++) {
+       dataAux.push(hand[i].x - minX);
+       dataAux.push(hand[i].y - minY);
+    }
+
+    const tensor = new ort.Tensor('float32', Float32Array.from(dataAux), [1, 42]);
+    try {
+        // Specify that we ONLY want the first output (the predicted label)
+        // This avoids fetching the "output_probability" sequence of maps that crashes WASM
+        const fetches = [ortSession.outputNames[0]];
+        const output = await ortSession.run({ float_input: tensor }, fetches);
+        
+        const labelTensor = output[ortSession.outputNames[0]];
+        
+        let predictedIdx = labelTensor.data[0];
+        if (typeof predictedIdx === 'bigint' || typeof predictedIdx === 'string') {
+            predictedIdx = Number(predictedIdx);
+        }
+
+        const predictedChar = labelsDict[predictedIdx];
+        
+        // Simple event-driven logic
+        if (predictedChar !== currentGesture) {
+            currentGesture = predictedChar;
+            gestureStartTime = Date.now();
+        } else if (Date.now() - gestureStartTime > 300) {
+            // Emitting gesture stable for 300ms
+            await broadcastSemanticEvent(predictedChar, 95); // 95% placeholder format
+            // reset start time to act as a hold refresh
+            gestureStartTime = Date.now() + 2000; 
+        }
+    } catch (e) {
+        console.error("ONNX inference error", e);
+    }
   }
 
   function sendChatMessage(message) {
@@ -490,6 +602,45 @@
     }
   }
 
+  function setupDataChannel(channel, peerSid) {
+      channel.binaryType = "arraybuffer";
+      channel.onmessage = async (event) => {
+          let buffer;
+          if (event.data instanceof Blob) {
+             buffer = new Uint8Array(await event.data.arrayBuffer());
+          } else {
+             buffer = new Uint8Array(event.data);
+          }
+          try {
+              const nonce = buffer.slice(0, 12);
+              const timestamp = buffer.slice(buffer.length - 8);
+              const ciphertext = buffer.slice(12, buffer.length - 8);
+              const plain = await crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: nonce, additionalData: timestamp },
+                state.sessionKey,
+                ciphertext
+              );
+              
+              const payloadStr = new TextDecoder().decode(plain);
+              const payload = JSON.parse(payloadStr);
+              
+              if (payload.type === "gesture_change") {
+                  elements.remoteGestureBadge.innerHTML =
+                    `<i class="fa-solid fa-language"></i> <span>${payload.sender}: ${payload.gesture}</span>`;
+                  
+                  addMessage({
+                    sender: payload.sender,
+                    message: payload.gesture,
+                    type: "sign",
+                    timestamp: payload.timestamp,
+                  });
+              }
+          } catch(e) {
+              console.error("DataChannel Decryption Failed:", e);
+          }
+      };
+  }
+
   async function getOrCreatePeerConnection(peerSid, metadata = {}) {
     if (state.peerConnections.has(peerSid)) {
       const existingMeta = state.peerMetadata.get(peerSid) || {};
@@ -504,6 +655,17 @@
 
     state.peerConnections.set(peerSid, peerConnection);
     state.peerMetadata.set(peerSid, metadata);
+
+    const semanticChannel = peerConnection.createDataChannel("critical_semantics");
+    peerConnection.semanticChannel = semanticChannel;
+    setupDataChannel(semanticChannel, peerSid);
+
+    peerConnection.ondatachannel = (event) => {
+        if (event.channel.label === "critical_semantics") {
+            setupDataChannel(event.channel, peerSid);
+            peerConnection.semanticChannel = event.channel;
+        }
+    };
 
     peerConnection.onicecandidate = (event) => {
       if (!event.candidate) {
