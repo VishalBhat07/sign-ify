@@ -43,7 +43,7 @@ if __name__ == "__main__":
         socketio.run(
             app,
             host="0.0.0.0",
-            port=5000,
+            port=3000,
             ssl_context=(str(CERT_PATH), str(KEY_PATH)),
         )
     else:
@@ -51,4 +51,4 @@ if __name__ == "__main__":
         print("   Run: python scripts/generate_ssl.py")
         print("   Or starting in HTTP mode (not recommended)...")
         print("   URL: http://localhost:5000\n")
-        socketio.run(app, host="0.0.0.0", port=5000)
+        socketio.run(app, host="0.0.0.0", port=3000)
