@@ -14,6 +14,8 @@ export const state = {
   peerMetadata: new Map(),
   activeRemoteSid: null,
   sessionKey: null,
+  currentEpoch: 0,
+  epochKeys: new Map(),
   cryptoSeqNum: 0,
   recognition: null,
   isRecording: false,

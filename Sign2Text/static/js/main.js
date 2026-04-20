@@ -198,7 +198,27 @@ document.addEventListener("DOMContentLoaded", () => {
     state.authToken = data.token;
     state.currentRole = data.role;
     state.stunServers = data.stun_servers || [];
-    state.sessionKey = await deriveSessionKey(data.room_id, state.roomPassword);
+    state.currentEpoch = 0;
+    state.sessionKey = await deriveSessionKey(data.room_id, state.roomPassword, state.currentEpoch);
+    state.epochKeys.set(state.currentEpoch, state.sessionKey);
+    
+    if (window.epochInterval) clearInterval(window.epochInterval);
+    window.epochInterval = setInterval(async () => {
+        state.currentEpoch++;
+        const newKey = await deriveSessionKey(state.roomId, state.roomPassword, state.currentEpoch);
+        state.epochKeys.set(state.currentEpoch, newKey);
+        
+        const epochBadge = document.getElementById("epochBadge");
+        if (epochBadge) epochBadge.innerText = `Epoch ${state.currentEpoch}`;
+        
+        // Stale grace period: retain only n and n-1
+        for (const epochKey of state.epochKeys.keys()) {
+            if (epochKey < state.currentEpoch - 1) {
+                state.epochKeys.delete(epochKey);
+            }
+        }
+    }, 60000);
+    
     state.mediaReadyPromise = initializeLocalMedia();
     state.signalingReady = false;
 

@@ -117,12 +117,18 @@ export function setupDataChannel(channel, peerSid) {
            buffer = new Uint8Array(event.data);
         }
         try {
-            const nonce = buffer.slice(0, 12);
+            if (buffer.length < 40) return;
+            const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+            const packetEpoch = dv.getUint32(0, false);
+            
+            const peerKey = state.epochKeys.has(packetEpoch) ? state.epochKeys.get(packetEpoch) : state.sessionKey;
+            
+            const nonce = buffer.slice(4, 16);
             const timestamp = buffer.slice(buffer.length - 8);
-            const ciphertext = buffer.slice(12, buffer.length - 8);
+            const ciphertext = buffer.slice(16, buffer.length - 8);
             const plain = await crypto.subtle.decrypt(
               { name: "AES-GCM", iv: nonce, additionalData: timestamp },
-              state.sessionKey,
+              peerKey,
               ciphertext
             );
             

@@ -3,7 +3,7 @@ export async function sha256Bytes(input) {
   return new Uint8Array(digest);
 }
 
-export async function deriveSessionKey(roomId, password) {
+export async function deriveSessionKey(roomId, password, epoch = 0) {
   const encoder = new TextEncoder();
   const passwordKey = await crypto.subtle.importKey(
     "raw",
@@ -12,7 +12,8 @@ export async function deriveSessionKey(roomId, password) {
     false,
     ["deriveKey"]
   );
-  const salt = await sha256Bytes(encoder.encode(roomId));
+  const saltStr = `${roomId}_epoch_${epoch}`;
+  const salt = await sha256Bytes(encoder.encode(saltStr));
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
@@ -45,7 +46,12 @@ export function base64ToBytes(base64) {
 }
 
 export async function encryptPacket(plainBytes, sessionKey, stateObj) {
-  if (!sessionKey) {
+  let keyToUse = sessionKey;
+  if (stateObj && stateObj.epochKeys && stateObj.epochKeys.has(stateObj.currentEpoch)) {
+      keyToUse = stateObj.epochKeys.get(stateObj.currentEpoch);
+  }
+  
+  if (!keyToUse) {
     throw new Error("Session key not ready");
   }
 
@@ -70,10 +76,14 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
   );
 
   const cipherBytes = new Uint8Array(ciphertext);
-  const packet = new Uint8Array(nonce.length + cipherBytes.length + timestamp.length);
-  packet.set(nonce, 0);
-  packet.set(cipherBytes, nonce.length);
-  packet.set(timestamp, nonce.length + cipherBytes.length);
+  const packet = new Uint8Array(4 + nonce.length + cipherBytes.length + timestamp.length);
+  
+  const epochView = new DataView(packet.buffer);
+  epochView.setUint32(0, stateObj.currentEpoch, false);
+  
+  packet.set(nonce, 4);
+  packet.set(cipherBytes, 4 + nonce.length);
+  packet.set(timestamp, 4 + nonce.length + cipherBytes.length);
   return packet;
 }
 
@@ -83,13 +93,13 @@ export async function decryptPacket(base64Payload, sessionKey) {
   }
 
   const packet = base64ToBytes(base64Payload);
-  if (packet.length < 36) {
+  if (packet.length < 40) {
     throw new Error("Encrypted payload too short");
   }
 
-  const nonce = packet.slice(0, 12);
+  const nonce = packet.slice(4, 16);
   const timestamp = packet.slice(packet.length - 8);
-  const ciphertext = packet.slice(12, packet.length - 8);
+  const ciphertext = packet.slice(16, packet.length - 8);
   const plain = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
