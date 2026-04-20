@@ -3,6 +3,7 @@ import { deriveSessionKey } from './crypto.js';
 import { showTab, getSelectedRole, showToast, addMessage, addSystemMessage, resetRoomCreatedState, setParticipantCount, setRecordingState } from './ui.js';
 import { stopIslCapture } from './inference.js';
 import { cleanupPeer, handleOffer, handleAnswer, handleIceCandidate, createOfferForPeer, initializeLocalMedia } from './webrtc.js';
+import { initDashboard } from './dashboard.js';
 
 function sendChatMessage(message) {
   const text = (message || "").trim();
@@ -79,6 +80,8 @@ async function enterConference(joinPayload) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initDashboard();
+
   document.querySelectorAll(".tab-btn").forEach((button) => {
     button.addEventListener("click", () => showTab(button.dataset.tabTarget));
   });

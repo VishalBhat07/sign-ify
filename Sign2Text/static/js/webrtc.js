@@ -2,6 +2,7 @@ import { state, elements, socket } from './state.js';
 import { decryptPacket } from './crypto.js';
 import { addMessage, updateRemotePlaceholder, showToast, clearIslOverlay } from './ui.js';
 import { startIslCapture, stopIslCapture } from './inference.js';
+import { processInboundReliability } from './reliability.js';
 
 export function setRemoteStream(peerSid, stream) {
   state.remoteStreams.set(peerSid, stream);
@@ -127,6 +128,9 @@ export function setupDataChannel(channel, peerSid) {
             
             const payloadStr = new TextDecoder().decode(plain);
             const payload = JSON.parse(payloadStr);
+            
+            const shouldProcess = await processInboundReliability(payload, peerSid);
+            if (!shouldProcess) return;
             
             if (payload.type === "gesture_change") {
                 elements.remoteGestureBadge.innerHTML =

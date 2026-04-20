@@ -199,6 +199,61 @@
             </button>
           </div>
         </aside>
+
+        <div class="dashboard-section" id="researchDashboard">
+           <div class="dashboard-header">
+             <h3><i class="fa-solid fa-flask"></i> Research</h3>
+           </div>
+           <div class="dashboard-content">
+             <div class="dashboard-group">
+               <h4>Live Metrics</h4>
+               <div class="metric-row">
+                 <span>Packets Sent</span>
+                 <span id="statsSent">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>Packets Received</span>
+                 <span id="statsReceived">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>ACKs Received</span>
+                 <span id="statsAcked">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>Retransmissions</span>
+                 <span id="statsRetries">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>Dupes Dropped</span>
+                 <span id="statsDupes">0</span>
+               </div>
+             </div>
+
+             <div class="dashboard-group">
+               <h4>Savings (est.)</h4>
+               <div class="metric-row">
+                 <span>Data Transferred</span>
+                 <span id="statsBytes">0 B</span>
+               </div>
+             </div>
+             
+             <div class="dashboard-group">
+               <h4>Degradation Sandbox</h4>
+               <div class="dashboard-slider">
+                  <label>Packet Loss <span id="simPacketLossLabel">0%</span></label>
+                  <input type="range" id="simPacketLoss" min="0" max="80" value="0">
+               </div>
+               <div class="dashboard-slider">
+                  <label>Base Delay <span id="simDelayLabel">0ms</span></label>
+                  <input type="range" id="simDelay" min="0" max="1000" value="0">
+               </div>
+               <div class="dashboard-slider">
+                  <label>Jitter <span id="simJitterLabel">0ms</span></label>
+                  <input type="range" id="simJitter" min="0" max="500" value="0">
+               </div>
+             </div>
+           </div>
+        </div>
       </section>
     </main>
 

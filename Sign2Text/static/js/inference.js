@@ -1,6 +1,6 @@
 import { state, elements, inferenceState, labelsDict } from './state.js';
-import { encryptPacket } from './crypto.js';
 import { addMessage } from './ui.js';
+import { sendReliableMessage } from './reliability.js';
 
 export function stopIslCapture() {
   if (inferenceState.cameraInstance) {
@@ -22,9 +22,6 @@ export async function broadcastSemanticEvent(gesture, confidence) {
       confidence: confidence,
       timestamp: new Date().toLocaleTimeString()
   };
-  const payload = JSON.stringify(payloadObj);
-
-  const encrypted = await encryptPacket(new TextEncoder().encode(payload), state.sessionKey, state);
   
   addMessage({
       sender: state.userName + " (You)",
@@ -33,11 +30,8 @@ export async function broadcastSemanticEvent(gesture, confidence) {
       timestamp: payloadObj.timestamp
   });
   
-  for (const [peerSid, pc] of state.peerConnections.entries()) {
-      const dc = pc.semanticChannel;
-      if (dc && dc.readyState === "open") {
-          dc.send(encrypted);
-      }
+  for (const peerSid of state.peerConnections.keys()) {
+      sendReliableMessage({ ...payloadObj }, peerSid);
   }
 }
 
