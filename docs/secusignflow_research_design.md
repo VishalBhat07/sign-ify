@@ -85,3 +85,37 @@ detect missing CONTROL/CRITICAL packet -> validate parity digest -> XOR reconstr
 | No packet-importance scheduling | Compare adaptive transport scheduling. |
 
 Metrics are exported as JSON or CSV: encryption latency, epoch rotation overhead, recovery success rate, bandwidth overhead, RTT impact, replay rejection rate, parity reconstruction latency, packet loss, jitter, and delivery rate by packet class.
+
+## Frontend Demonstration Surface
+
+The browser UI includes a SecuSignFlow Transport Monitor so the transport-security behavior can be demonstrated live instead of only explained from code.
+
+Displayed groups:
+
+| Group | Purpose |
+|---|---|
+| Secure Session | Shows TLS, WebRTC SRTP, AES-GCM, policy verification, and policy fingerprint. |
+| Packet Classes | Shows live counters for CONTROL, CRITICAL, INTERACTIVE, and BEST_EFFORT packets. |
+| Rolling Keys | Shows current epoch, packet progress toward rotation, and replay-window status. |
+| Live Metrics | Shows sent/received packets, ACKs, retransmissions, duplicate drops, recovery, and replay rejection. |
+| Degradation Sandbox | Lets the presenter simulate 0%, 5%, 10%, or 20% packet loss. |
+| Latest Packet Header | Shows the authenticated packet metadata currently used by the browser transport path. |
+| Export | Downloads a JSON metrics trace for reproducible evaluation. |
+
+Metric meanings:
+
+| Metric | Meaning |
+|---|---|
+| Policy Verified | The active transport rules match the signed policy fingerprint. |
+| Current Epoch | The rolling AES-GCM key generation used by secure packets. |
+| Epoch Progress | Number of packets sent under the current epoch key. |
+| Recovered | Packets protected by retransmission or verified recovery behavior. |
+| Replay Rejected | Duplicate, stale, or out-of-window packets rejected by replay protection. |
+| Latest Header | Packet metadata authenticated as AES-GCM associated data. |
+
+Viewer media controls:
+
+- Viewers join receive-only by default.
+- Viewers can optionally publish camera and microphone from the setup screen.
+- In-call camera and microphone buttons can enable or disable local tracks.
+- Enabling a new local track triggers WebRTC renegotiation.
