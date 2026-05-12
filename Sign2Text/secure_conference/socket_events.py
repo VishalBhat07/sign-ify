@@ -12,6 +12,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from .auth import RoomAuth
 from .config import STUN_SERVERS
 from .rooms import Participant, RoomRegistry
+from .semantic import classify_packet
 
 
 def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registry: RoomRegistry) -> None:
@@ -131,6 +132,7 @@ def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registr
                     "isl": "AES-256-GCM over Socket.IO",
                 },
                 "key_fingerprint": room.key_fingerprint,
+                "transport_sync": room.transport_sync_payload(),
             },
         )
         emit(
@@ -186,9 +188,14 @@ def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registr
 
         try:
             encrypted_frame = base64.b64decode(encrypted_frame_b64)
-            frame_bytes = room.decrypt_payload(encrypted_frame)
-        except Exception:
-            emit("signaling_error", {"error": "Unable to decrypt ISL frame"})
+            semantic = classify_packet("isl_frame_secure", data)
+            if room._looks_like_secure_packet(encrypted_frame):
+                frame_bytes, inbound_header = room.decrypt_secure_payload(encrypted_frame)
+            else:
+                frame_bytes = room.decrypt_payload(encrypted_frame)
+                inbound_header = None
+        except Exception as exc:
+            emit("signaling_error", {"error": f"Unable to decrypt ISL frame: {exc}"})
             return
 
         result = recognizer.predict_from_image_bytes(frame_bytes)
@@ -210,15 +217,42 @@ def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registr
                 "annotated_preview": result.annotated_preview,
             }
         ).encode()
-        encrypted_result = base64.b64encode(room.encrypt_payload(payload)).decode()
+        outbound_label = semantic.label.value if "semantic" in locals() else "CRITICAL"
+        encrypted_result = base64.b64encode(room.encrypt_payload(payload, outbound_label)).decode()
 
         emit(
             "isl_feedback_secure",
             {
                 "encrypted_payload": encrypted_result,
                 "sender_sid": request.sid,
+                "transport_header": inbound_header.to_dict() if inbound_header else None,
+                "transport_state": {
+                    "sender": room.sender_state,
+                    "receiver": room.receiver_state,
+                    "epoch_id": room.epoch_id,
+                    "policy_fingerprint": room.policy_fingerprint,
+                },
             },
             room=room_id,
+        )
+
+    @socketio.on("transport_metrics")
+    def on_transport_metrics(data):
+        room_id, room, participant = get_verified_participant(data)
+        if not room or not participant:
+            return
+        metrics = data.get("metrics", {})
+        room.reliability.update_network(
+            float(metrics.get("packet_loss", room.reliability.snapshot.packet_loss)),
+            float(metrics.get("rtt_ms", room.reliability.snapshot.rtt_ms)),
+            float(metrics.get("jitter_ms", room.reliability.snapshot.jitter_ms)),
+        )
+        emit(
+            "transport_metrics_ack",
+            {
+                "metrics": room.reliability.as_dict(),
+                "transport_sync": room.transport_sync_payload(),
+            },
         )
 
     @socketio.on("webrtc_offer")

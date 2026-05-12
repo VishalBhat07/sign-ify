@@ -44,6 +44,7 @@ Usage:
     plaintext = encryptor.decrypt(ciphertext)
 """
 
+import json
 import os
 import struct
 import time
@@ -163,6 +164,50 @@ class AESEncryptor:
         packet = nonce + ciphertext + timestamp
         
         return packet
+
+    def encrypt_with_header(self, plaintext: bytes, header: dict, key: Optional[bytes] = None) -> bytes:
+        """
+        Encrypt a SecuSignFlow packet using the packet header as AEAD data.
+        The header remains visible, but AES-GCM authenticates it.
+        """
+        header_bytes = json.dumps(header, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        nonce = self._generate_nonce(int(header.get("packet_counter", 0)))
+        timestamp = int(header.get("timestamp", int(time.time()))).to_bytes(8, "big")
+        cipher = AESGCM(key or self.key)
+        ciphertext = cipher.encrypt(nonce, plaintext, header_bytes + timestamp)
+        header_len = len(header_bytes).to_bytes(4, "big")
+        return header_len + header_bytes + nonce + ciphertext + timestamp
+
+    def decrypt_with_header(self, packet: bytes, key_provider=None) -> Tuple[bytes, dict]:
+        """
+        Decrypt a SecuSignFlow packet and return plaintext plus authenticated header.
+        key_provider may be a callable accepting the decoded header.
+        """
+        if len(packet) < 4:
+            raise ValueError("Packet too short")
+        header_len = int.from_bytes(packet[:4], "big")
+        min_size = 4 + header_len + 12 + 16 + 8
+        if len(packet) < min_size:
+            raise ValueError("Metadata packet too short")
+        header_bytes = packet[4 : 4 + header_len]
+        header = json.loads(header_bytes.decode("utf-8"))
+        nonce_start = 4 + header_len
+        nonce = packet[nonce_start : nonce_start + 12]
+        timestamp = packet[-8:]
+        ciphertext = packet[nonce_start + 12 : -8]
+        timestamp_int = int.from_bytes(timestamp, "big")
+        age = int(time.time()) - timestamp_int
+        if age > self.max_age_seconds:
+            raise ValueError(f"Packet too old ({age} seconds)")
+        if age < -2:
+            raise ValueError("Packet from future (clock skew)")
+        if nonce in self.seen_nonces:
+            raise ValueError("Duplicate nonce detected (replay attack?)")
+        key = key_provider(header) if key_provider else self.key
+        cipher = AESGCM(key)
+        plaintext = cipher.decrypt(nonce, ciphertext, header_bytes + timestamp)
+        self.seen_nonces.add(nonce)
+        return plaintext, header
         
     def decrypt(self, packet: bytes, 
                 associated_data: bytes = b'') -> Tuple[bytes, int]:
