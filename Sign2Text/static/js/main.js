@@ -2,7 +2,7 @@ import { state, elements, socket } from './state.js';
 import { deriveSessionKey } from './crypto.js';
 import { showTab, getSelectedRole, showToast, addMessage, addSystemMessage, resetRoomCreatedState, setParticipantCount, setRecordingState } from './ui.js';
 import { stopIslCapture } from './inference.js';
-import { cleanupPeer, handleOffer, handleAnswer, handleIceCandidate, createOfferForPeer, initializeLocalMedia } from './webrtc.js';
+import { cleanupPeer, handleOffer, handleAnswer, handleIceCandidate, createOfferForPeer, initializeLocalMedia, toggleLocalCamera, toggleLocalMic } from './webrtc.js';
 import { initDashboard } from './dashboard.js';
 
 function sendChatMessage(message) {
@@ -16,7 +16,23 @@ function sendChatMessage(message) {
     token: state.authToken,
     message: text,
   });
+  recordPacketClass("INTERACTIVE");
   elements.voiceInput.value = "";
+}
+
+function applyMediaPrefs(groupName, role) {
+  const cameraInput = groupName === "create" ? elements.createCamera : elements.joinCamera;
+  const micInput = groupName === "create" ? elements.createMic : elements.joinMic;
+  state.mediaPrefs = {
+    video: role === "signer" || Boolean(cameraInput && cameraInput.checked),
+    audio: Boolean(micInput && micInput.checked),
+  };
+}
+
+function recordPacketClass(label) {
+  if (state.transportStats.classCounts[label] !== undefined) {
+    state.transportStats.classCounts[label] += 1;
+  }
 }
 
 function setupSpeechRecognition() {
@@ -93,6 +109,11 @@ document.addEventListener("DOMContentLoaded", () => {
           .querySelectorAll(".role-option")
           .forEach((option) => option.classList.remove("selected"));
         button.classList.add("selected");
+        const group = container.dataset.roleGroup;
+        const cameraInput = group === "create" ? elements.createCamera : elements.joinCamera;
+        if (cameraInput && button.dataset.role === "signer") {
+          cameraInput.checked = true;
+        }
       });
     });
   });
@@ -110,6 +131,8 @@ document.addEventListener("DOMContentLoaded", () => {
     state.userName = name;
     state.roomPassword = password;
     state.currentRole = role;
+    applyMediaPrefs("create", role);
+    recordPacketClass("CONTROL");
     socket.emit("create_room", { password });
   });
 
@@ -119,6 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   elements.btnEnterRoom.addEventListener("click", async () => {
+    recordPacketClass("CONTROL");
     await enterConference({
       room: state.roomId,
       password: state.roomPassword,
@@ -143,6 +167,8 @@ document.addEventListener("DOMContentLoaded", () => {
     state.roomId = roomId;
     state.roomPassword = password;
     state.currentRole = role;
+    applyMediaPrefs("join", role);
+    recordPacketClass("CONTROL");
     await enterConference({
       room: roomId,
       password,
@@ -154,6 +180,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   elements.btnSend.addEventListener("click", () => {
     sendChatMessage(elements.voiceInput.value);
+  });
+
+  elements.btnToggleCamera.addEventListener("click", async () => {
+    try {
+      await toggleLocalCamera();
+    } catch (error) {
+      console.error("Camera toggle failed:", error);
+      showToast("Could not toggle camera.", 3200);
+    }
+  });
+
+  elements.btnToggleMic.addEventListener("click", async () => {
+    try {
+      await toggleLocalMic();
+    } catch (error) {
+      console.error("Mic toggle failed:", error);
+      showToast("Could not toggle microphone.", 3200);
+    }
   });
 
   elements.voiceInput.addEventListener("keypress", (event) => {
@@ -198,26 +242,25 @@ document.addEventListener("DOMContentLoaded", () => {
     state.authToken = data.token;
     state.currentRole = data.role;
     state.stunServers = data.stun_servers || [];
-    state.currentEpoch = 0;
+    const transportSync = data.transport_sync || {};
+    state.currentEpoch = transportSync.epoch_id || 0;
+    state.packetsPerEpoch = transportSync.packets_per_epoch || 32;
+    state.epochGrace = transportSync.epoch_grace || 1;
+    state.policyFingerprint = transportSync.policy_fingerprint || "";
+    state.transportPolicy = transportSync.policy || null;
+    state.packetCounter = 0;
+    state.commitmentHash = "";
     state.sessionKey = await deriveSessionKey(data.room_id, state.roomPassword, state.currentEpoch);
     state.epochKeys.set(state.currentEpoch, state.sessionKey);
     
     if (window.epochInterval) clearInterval(window.epochInterval);
-    window.epochInterval = setInterval(async () => {
-        state.currentEpoch++;
-        const newKey = await deriveSessionKey(state.roomId, state.roomPassword, state.currentEpoch);
-        state.epochKeys.set(state.currentEpoch, newKey);
-        
-        const epochBadge = document.getElementById("epochBadge");
-        if (epochBadge) epochBadge.innerText = `Epoch ${state.currentEpoch}`;
-        
-        // Stale grace period: retain only n and n-1
+    window.epochInterval = setInterval(() => {
         for (const epochKey of state.epochKeys.keys()) {
-            if (epochKey < state.currentEpoch - 1) {
+            if (epochKey < state.currentEpoch - state.epochGrace) {
                 state.epochKeys.delete(epochKey);
             }
         }
-    }, 60000);
+    }, 10000);
     
     state.mediaReadyPromise = initializeLocalMedia();
     state.signalingReady = false;
@@ -265,9 +308,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.on("new_message", addMessage);
 
-  socket.on("webrtc_offer", handleOffer);
-  socket.on("webrtc_answer", handleAnswer);
-  socket.on("ice_candidate", handleIceCandidate);
+  socket.on("webrtc_offer", (data) => {
+    recordPacketClass("CONTROL");
+    handleOffer(data);
+  });
+  socket.on("webrtc_answer", (data) => {
+    recordPacketClass("CONTROL");
+    handleAnswer(data);
+  });
+  socket.on("ice_candidate", (data) => {
+    recordPacketClass("CONTROL");
+    handleIceCandidate(data);
+  });
 
   socket.on("signaling_error", (data) => {
     console.error("Signaling error:", data.error);

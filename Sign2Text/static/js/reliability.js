@@ -79,6 +79,7 @@ function executeSend(peerSid, encryptedBuffer) {
     if (networkSimulator.packetLossPct > 0) {
         if (Math.random() * 100 < networkSimulator.packetLossPct) {
             console.warn("[Simulator] Packet Intentionally Dropped!");
+            reliabilityState.stats.simulatedDrops = (reliabilityState.stats.simulatedDrops || 0) + 1;
             return; // Simulate loss by never sending
         }
     }

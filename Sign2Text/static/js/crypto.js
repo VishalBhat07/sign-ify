@@ -3,6 +3,10 @@ export async function sha256Bytes(input) {
   return new Uint8Array(digest);
 }
 
+export function bytesToHex(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export async function deriveSessionKey(roomId, password, epoch = 0) {
   const encoder = new TextEncoder();
   const passwordKey = await crypto.subtle.importKey(
@@ -56,6 +60,13 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
   }
 
   stateObj.cryptoSeqNum += 1;
+  stateObj.packetCounter = (stateObj.packetCounter || 0) + 1;
+  if (stateObj.packetCounter > 1 && (stateObj.packetCounter - 1) % (stateObj.packetsPerEpoch || 32) === 0) {
+    stateObj.currentEpoch += 1;
+    const newKey = await deriveSessionKey(stateObj.roomId, stateObj.roomPassword, stateObj.currentEpoch);
+    stateObj.epochKeys.set(stateObj.currentEpoch, newKey);
+  }
+
   const nonce = new Uint8Array(12);
   crypto.getRandomValues(nonce);
   const seqBytes = new Uint8Array(new Uint32Array([stateObj.cryptoSeqNum]).buffer);
@@ -65,25 +76,43 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
   const view = new DataView(timestamp.buffer);
   view.setBigUint64(0, BigInt(Math.floor(Date.now() / 1000)));
 
+  const commitmentInput = new TextEncoder().encode(
+    `${stateObj.commitmentHash || ""}:${stateObj.packetCounter}:CRITICAL:${stateObj.currentEpoch}`
+  );
+  stateObj.commitmentHash = bytesToHex(await sha256Bytes(commitmentInput));
+  const header = {
+    packet_id: stateObj.packetCounter,
+    semantic_label: "CRITICAL",
+    epoch_id: stateObj.currentEpoch,
+    packet_counter: stateObj.packetCounter,
+    timestamp: Number(view.getBigUint64(0)),
+    commitment_hash: stateObj.commitmentHash,
+    policy_fingerprint: stateObj.policyFingerprint || "",
+    parity_group: null
+  };
+  stateObj.latestPacketHeader = header;
+  if (stateObj.transportStats && stateObj.transportStats.classCounts) {
+    stateObj.transportStats.classCounts.CRITICAL += 1;
+  }
+  const headerBytes = new TextEncoder().encode(JSON.stringify(header));
+
   const ciphertext = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
       iv: nonce,
-      additionalData: timestamp,
+      additionalData: concatBytes(headerBytes, timestamp),
     },
-    sessionKey,
+    keyToUse,
     plainBytes
   );
 
   const cipherBytes = new Uint8Array(ciphertext);
-  const packet = new Uint8Array(4 + nonce.length + cipherBytes.length + timestamp.length);
-  
-  const epochView = new DataView(packet.buffer);
-  epochView.setUint32(0, stateObj.currentEpoch, false);
-  
-  packet.set(nonce, 4);
-  packet.set(cipherBytes, 4 + nonce.length);
-  packet.set(timestamp, 4 + nonce.length + cipherBytes.length);
+  const packet = new Uint8Array(4 + headerBytes.length + nonce.length + cipherBytes.length + timestamp.length);
+  new DataView(packet.buffer).setUint32(0, headerBytes.length, false);
+  packet.set(headerBytes, 4);
+  packet.set(nonce, 4 + headerBytes.length);
+  packet.set(cipherBytes, 4 + headerBytes.length + nonce.length);
+  packet.set(timestamp, 4 + headerBytes.length + nonce.length + cipherBytes.length);
   return packet;
 }
 
@@ -110,4 +139,47 @@ export async function decryptPacket(base64Payload, sessionKey) {
     ciphertext
   );
   return new Uint8Array(plain);
+}
+
+export async function decryptPacketBuffer(buffer, stateObj) {
+  const packet = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  if (packet.length < 40) {
+    throw new Error("Encrypted payload too short");
+  }
+  const headerLength = new DataView(packet.buffer, packet.byteOffset, packet.byteLength).getUint32(0, false);
+  const headerStart = 4;
+  const headerEnd = headerStart + headerLength;
+  const headerBytes = packet.slice(headerStart, headerEnd);
+  const header = JSON.parse(new TextDecoder().decode(headerBytes));
+  if (stateObj.policyFingerprint && header.policy_fingerprint && header.policy_fingerprint !== stateObj.policyFingerprint) {
+    throw new Error("Policy fingerprint mismatch");
+  }
+  if (header.epoch_id < stateObj.currentEpoch - (stateObj.epochGrace || 1)) {
+    if (stateObj.transportStats) stateObj.transportStats.replayRejected += 1;
+    throw new Error("Stale epoch");
+  }
+  stateObj.latestPacketHeader = header;
+  if (stateObj.transportStats && stateObj.transportStats.classCounts && header.semantic_label) {
+    const label = header.semantic_label in stateObj.transportStats.classCounts ? header.semantic_label : "BEST_EFFORT";
+    stateObj.transportStats.classCounts[label] += 1;
+  }
+  const key = stateObj.epochKeys.has(header.epoch_id)
+    ? stateObj.epochKeys.get(header.epoch_id)
+    : stateObj.sessionKey;
+  const nonce = packet.slice(headerEnd, headerEnd + 12);
+  const timestamp = packet.slice(packet.length - 8);
+  const ciphertext = packet.slice(headerEnd + 12, packet.length - 8);
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: nonce, additionalData: concatBytes(headerBytes, timestamp) },
+    key,
+    ciphertext
+  );
+  return { plain: new Uint8Array(plain), header };
+}
+
+function concatBytes(first, second) {
+  const combined = new Uint8Array(first.length + second.length);
+  combined.set(first, 0);
+  combined.set(second, first.length);
+  return combined;
 }

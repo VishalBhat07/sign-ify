@@ -1,5 +1,5 @@
 import { state, elements, socket } from './state.js';
-import { decryptPacket } from './crypto.js';
+import { decryptPacketBuffer } from './crypto.js';
 import { addMessage, updateRemotePlaceholder, showToast, clearIslOverlay } from './ui.js';
 import { startIslCapture, stopIslCapture } from './inference.js';
 import { processInboundReliability } from './reliability.js';
@@ -31,19 +31,44 @@ export function maybeDisplayAnotherRemote() {
 }
 
 export async function initializeLocalMedia() {
+  const wantsVideo = state.currentRole === "signer" || state.mediaPrefs.video;
+  const wantsAudio = state.mediaPrefs.audio;
+  if (!wantsVideo && !wantsAudio) {
+    state.localStream = new MediaStream();
+    elements.localVideo.srcObject = state.localStream;
+    elements.localPlaceholder.textContent = "Camera and microphone are off. You can enable them anytime.";
+    elements.localPlaceholder.classList.remove("hidden");
+    stopIslCapture();
+    elements.islOverlayCanvas.classList.add("hidden");
+    clearIslOverlay();
+    elements.islStatusBadge.innerHTML =
+      '<i class="fa-solid fa-eye"></i> <span>Receive-only mode</span>';
+    updateMediaToggleButtons();
+    return state.localStream;
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
-      audio: false,
+      video: wantsVideo
+        ? {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          }
+        : false,
+      audio: wantsAudio,
     });
     state.localStream = stream;
+    state.localVideoEnabled = stream.getVideoTracks().some((track) => track.enabled);
+    state.localAudioEnabled = stream.getAudioTracks().some((track) => track.enabled);
     elements.localVideo.srcObject = stream;
-    elements.localPlaceholder.classList.add("hidden");
+    if (state.localVideoEnabled) {
+      elements.localPlaceholder.classList.add("hidden");
+    } else {
+      elements.localPlaceholder.textContent = "Microphone is on. Camera is off.";
+      elements.localPlaceholder.classList.remove("hidden");
+    }
     elements.mediaStatus.textContent = "Camera ready";
-    if (state.currentRole === "signer") {
+    if (state.currentRole === "signer" && state.localVideoEnabled) {
       elements.islOverlayCanvas.classList.add("hidden");
       clearIslOverlay();
       startIslCapture();
@@ -54,6 +79,7 @@ export async function initializeLocalMedia() {
       elements.islStatusBadge.innerHTML =
         '<i class="fa-solid fa-eye"></i> <span>ISL disabled for viewer</span>';
     }
+    updateMediaToggleButtons();
     return stream;
   } catch (error) {
     console.error("Failed to access camera:", error);
@@ -66,14 +92,18 @@ export async function initializeLocalMedia() {
 }
 
 export async function ensureLocalTracks(peerConnection, peerSid) {
-  if (peerConnection.__tracksAdded || !state.localStream) {
+  if (!state.localStream) {
     return;
   }
 
+  peerConnection.__addedTrackIds = peerConnection.__addedTrackIds || new Set();
   state.localStream.getTracks().forEach((track) => {
+    if (peerConnection.__addedTrackIds.has(track.id)) {
+      return;
+    }
     peerConnection.addTrack(track, state.localStream);
+    peerConnection.__addedTrackIds.add(track.id);
   });
-  peerConnection.__tracksAdded = true;
   state.peerMetadata.set(peerSid, state.peerMetadata.get(peerSid) || {});
 }
 
@@ -117,21 +147,7 @@ export function setupDataChannel(channel, peerSid) {
            buffer = new Uint8Array(event.data);
         }
         try {
-            if (buffer.length < 40) return;
-            const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-            const packetEpoch = dv.getUint32(0, false);
-            
-            const peerKey = state.epochKeys.has(packetEpoch) ? state.epochKeys.get(packetEpoch) : state.sessionKey;
-            
-            const nonce = buffer.slice(4, 16);
-            const timestamp = buffer.slice(buffer.length - 8);
-            const ciphertext = buffer.slice(16, buffer.length - 8);
-            const plain = await crypto.subtle.decrypt(
-              { name: "AES-GCM", iv: nonce, additionalData: timestamp },
-              peerKey,
-              ciphertext
-            );
-            
+            const { plain } = await decryptPacketBuffer(buffer, state);
             const payloadStr = new TextDecoder().decode(plain);
             const payload = JSON.parse(payloadStr);
             
@@ -233,6 +249,87 @@ export async function createOfferForPeer(peerSid, metadata = {}) {
     offer: peerConnection.localDescription,
   });
   elements.mediaStatus.textContent = "Negotiating WebRTC";
+}
+
+export async function toggleLocalCamera() {
+  if (state.localVideoEnabled) {
+    setTrackEnabled("video", false);
+    state.localVideoEnabled = false;
+    elements.localPlaceholder.textContent = "Camera is off.";
+    elements.localPlaceholder.classList.remove("hidden");
+    if (state.currentRole === "signer") {
+      stopIslCapture();
+    }
+    updateMediaToggleButtons();
+    return;
+  }
+
+  await addLocalTrack("video");
+  state.localVideoEnabled = true;
+  elements.localPlaceholder.classList.add("hidden");
+  if (state.currentRole === "signer") {
+    startIslCapture();
+  }
+  updateMediaToggleButtons();
+  await renegotiateAllPeers();
+}
+
+export async function toggleLocalMic() {
+  if (state.localAudioEnabled) {
+    setTrackEnabled("audio", false);
+    state.localAudioEnabled = false;
+    updateMediaToggleButtons();
+    return;
+  }
+
+  await addLocalTrack("audio");
+  state.localAudioEnabled = true;
+  updateMediaToggleButtons();
+  await renegotiateAllPeers();
+}
+
+async function addLocalTrack(kind) {
+  const constraints = kind === "video"
+    ? { video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }
+    : { video: false, audio: true };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  if (!state.localStream) {
+    state.localStream = new MediaStream();
+  }
+  stream.getTracks().forEach((track) => state.localStream.addTrack(track));
+  elements.localVideo.srcObject = state.localStream;
+}
+
+function setTrackEnabled(kind, enabled) {
+  if (!state.localStream) return;
+  state.localStream.getTracks().filter((track) => track.kind === kind).forEach((track) => {
+    track.enabled = enabled;
+  });
+}
+
+async function renegotiateAllPeers() {
+  for (const peerSid of state.peerConnections.keys()) {
+    const pc = state.peerConnections.get(peerSid);
+    await ensureLocalTracks(pc, peerSid);
+    await createOfferForPeer(peerSid, state.peerMetadata.get(peerSid) || {});
+  }
+}
+
+export function updateMediaToggleButtons() {
+  if (elements.btnToggleCamera) {
+    elements.btnToggleCamera.classList.toggle("active", state.localVideoEnabled);
+    elements.btnToggleCamera.innerHTML = state.localVideoEnabled
+      ? '<i class="fa-solid fa-video"></i>'
+      : '<i class="fa-solid fa-video-slash"></i>';
+    elements.btnToggleCamera.title = state.localVideoEnabled ? "Turn camera off" : "Turn camera on";
+  }
+  if (elements.btnToggleMic) {
+    elements.btnToggleMic.classList.toggle("active", state.localAudioEnabled);
+    elements.btnToggleMic.innerHTML = state.localAudioEnabled
+      ? '<i class="fa-solid fa-microphone"></i>'
+      : '<i class="fa-solid fa-microphone-slash"></i>';
+    elements.btnToggleMic.title = state.localAudioEnabled ? "Mute microphone" : "Turn microphone on";
+  }
 }
 
 export async function handleOffer(data) {

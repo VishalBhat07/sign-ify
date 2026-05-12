@@ -61,6 +61,17 @@
               </button>
             </div>
           </div>
+          <div class="form-group media-options">
+            <label>Media Options</label>
+            <label class="check-option">
+              <input type="checkbox" id="createCamera" checked />
+              <span>Publish camera</span>
+            </label>
+            <label class="check-option">
+              <input type="checkbox" id="createMic" />
+              <span>Publish microphone</span>
+            </label>
+          </div>
           <button class="btn" id="btnCreate" type="button">
             <i class="fa-solid fa-plus"></i>
             <span>Create Secure Room</span>
@@ -107,6 +118,17 @@
                 <span>Viewer</span>
               </button>
             </div>
+          </div>
+          <div class="form-group media-options">
+            <label>Media Options</label>
+            <label class="check-option">
+              <input type="checkbox" id="joinCamera" />
+              <span>Publish camera</span>
+            </label>
+            <label class="check-option">
+              <input type="checkbox" id="joinMic" />
+              <span>Publish microphone</span>
+            </label>
           </div>
           <button class="btn" id="btnJoin" type="button">
             <i class="fa-solid fa-right-to-bracket"></i>
@@ -162,6 +184,14 @@
                 <i class="fa-solid fa-hands-asl-interpreting"></i>
                 <span>ISL idle</span>
               </div>
+              <div class="media-control-row">
+                <button class="media-toggle" id="btnToggleCamera" type="button" title="Toggle camera">
+                  <i class="fa-solid fa-video-slash"></i>
+                </button>
+                <button class="media-toggle" id="btnToggleMic" type="button" title="Toggle microphone">
+                  <i class="fa-solid fa-microphone-slash"></i>
+                </button>
+              </div>
             </div>
           </article>
 
@@ -210,6 +240,66 @@
            </div>
            <div class="dashboard-content">
              <div class="dashboard-group">
+               <h4>Secure Session</h4>
+               <div class="metric-row">
+                 <span>TLS Signaling</span>
+                 <span>Active</span>
+               </div>
+               <div class="metric-row">
+                 <span>WebRTC SRTP</span>
+                 <span id="monitorWebrtc">Waiting</span>
+               </div>
+               <div class="metric-row">
+                 <span>AES-GCM Layer</span>
+                 <span>Active</span>
+               </div>
+               <div class="metric-row">
+                 <span>Policy</span>
+                 <span id="monitorPolicy">Pending</span>
+               </div>
+               <div class="metric-row">
+                 <span>Fingerprint</span>
+                 <span id="monitorPolicyFingerprint">...</span>
+               </div>
+             </div>
+
+             <div class="dashboard-group">
+               <h4>Packet Classes</h4>
+               <div class="metric-row">
+                 <span>CONTROL</span>
+                 <span id="classControl">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>CRITICAL</span>
+                 <span id="classCritical">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>INTERACTIVE</span>
+                 <span id="classInteractive">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>BEST_EFFORT</span>
+                 <span id="classBestEffort">0</span>
+               </div>
+             </div>
+
+             <div class="dashboard-group">
+               <h4>Rolling Keys</h4>
+               <div class="metric-row">
+                 <span>Current Epoch</span>
+                 <span id="monitorEpoch">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>Epoch Progress</span>
+                 <span id="monitorEpochProgress">0 / 32</span>
+               </div>
+               <div class="metric-row">
+                 <span>Replay Window</span>
+                 <span id="monitorReplay">Enabled</span>
+               </div>
+             </div>
+
+             <div class="dashboard-group">
                <h4>Live Metrics</h4>
                <div class="metric-row">
                  <span>Packets Sent</span>
@@ -231,6 +321,48 @@
                  <span>Dupes Dropped</span>
                  <span id="statsDupes">0</span>
                </div>
+               <div class="metric-row">
+                 <span>Recovered</span>
+                 <span id="statsRecovered">0</span>
+               </div>
+               <div class="metric-row">
+                 <span>Replay Rejected</span>
+                 <span id="statsReplayRejected">0</span>
+               </div>
+             </div>
+
+             <div class="dashboard-group">
+               <h4>Metric Meanings</h4>
+               <dl class="metric-help">
+                 <div>
+                   <dt>Policy Verified</dt>
+                   <dd>The active transport rules match the signed policy fingerprint.</dd>
+                 </div>
+                 <div>
+                   <dt>Packet Classes</dt>
+                   <dd>Packets grouped as CONTROL, CRITICAL, INTERACTIVE, or BEST_EFFORT before scheduling.</dd>
+                 </div>
+                 <div>
+                   <dt>Current Epoch</dt>
+                   <dd>The rolling AES-GCM key generation currently used for secure packets.</dd>
+                 </div>
+                 <div>
+                   <dt>Epoch Progress</dt>
+                   <dd>How many packets have used the current epoch key before rotation.</dd>
+                 </div>
+                 <div>
+                   <dt>Recovered</dt>
+                   <dd>Packets protected by retransmission or verified parity recovery behavior.</dd>
+                 </div>
+                 <div>
+                   <dt>Replay Rejected</dt>
+                   <dd>Duplicate, stale, or out-of-window packets rejected by replay protection.</dd>
+                 </div>
+                 <div>
+                   <dt>Latest Header</dt>
+                   <dd>Authenticated packet metadata used as AES-GCM associated data.</dd>
+                 </div>
+               </dl>
              </div>
 
              <div class="dashboard-group">
@@ -243,6 +375,12 @@
              
              <div class="dashboard-group">
                <h4>Degradation Sandbox</h4>
+               <div class="loss-presets">
+                  <button type="button" data-loss-preset="0">0%</button>
+                  <button type="button" data-loss-preset="5">5%</button>
+                  <button type="button" data-loss-preset="10">10%</button>
+                  <button type="button" data-loss-preset="20">20%</button>
+               </div>
                <div class="dashboard-slider">
                   <label>Packet Loss <span id="simPacketLossLabel">0%</span></label>
                   <input type="range" id="simPacketLoss" min="0" max="80" value="0">
@@ -255,6 +393,19 @@
                   <label>Jitter <span id="simJitterLabel">0ms</span></label>
                   <input type="range" id="simJitter" min="0" max="500" value="0">
                </div>
+             </div>
+
+             <div class="dashboard-group">
+               <h4>Latest Packet Header</h4>
+               <pre class="packet-header-view" id="latestPacketHeader">{}</pre>
+             </div>
+
+             <div class="dashboard-group">
+               <h4>Export</h4>
+               <button class="btn dashboard-export" id="btnExportMetrics" type="button">
+                 <i class="fa-solid fa-file-arrow-down"></i>
+                 <span>Download JSON</span>
+               </button>
              </div>
            </div>
         </div>
