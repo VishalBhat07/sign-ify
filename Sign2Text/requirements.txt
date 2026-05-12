@@ -10,3 +10,4 @@ scikit-learn==1.5.1
 flask_socketio
 eventlet
 cryptography
+pytest
