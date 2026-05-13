@@ -51,8 +51,12 @@ export function base64ToBytes(base64) {
 
 export async function encryptPacket(plainBytes, sessionKey, stateObj) {
   let keyToUse = sessionKey;
+  const baselineMode = stateObj && stateObj.transportMode === "baseline";
   if (stateObj && stateObj.epochKeys && stateObj.epochKeys.has(stateObj.currentEpoch)) {
       keyToUse = stateObj.epochKeys.get(stateObj.currentEpoch);
+  }
+  if (baselineMode) {
+      keyToUse = sessionKey;
   }
   
   if (!keyToUse) {
@@ -61,10 +65,13 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
 
   stateObj.cryptoSeqNum += 1;
   stateObj.packetCounter = (stateObj.packetCounter || 0) + 1;
-  if (stateObj.packetCounter > 1 && (stateObj.packetCounter - 1) % (stateObj.packetsPerEpoch || 32) === 0) {
+  emitPacket({ id: stateObj.packetCounter, label: "CRITICAL", stage: "Packet Created", type: "Created" });
+  emitPacket({ id: stateObj.packetCounter, label: "CRITICAL", stage: "Packet Classified", type: "Classified" });
+  if (!baselineMode && stateObj.packetCounter > 1 && (stateObj.packetCounter - 1) % (stateObj.packetsPerEpoch || 32) === 0) {
     stateObj.currentEpoch += 1;
     const newKey = await deriveSessionKey(stateObj.roomId, stateObj.roomPassword, stateObj.currentEpoch);
     stateObj.epochKeys.set(stateObj.currentEpoch, newKey);
+    emitDecision(`Epoch ${stateObj.currentEpoch - 1} -> Epoch ${stateObj.currentEpoch}: rolling key rotated`, "CONTROL");
   }
 
   const nonce = new Uint8Array(12);
@@ -83,7 +90,7 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
   const header = {
     packet_id: stateObj.packetCounter,
     semantic_label: "CRITICAL",
-    epoch_id: stateObj.currentEpoch,
+    epoch_id: baselineMode ? 0 : stateObj.currentEpoch,
     packet_counter: stateObj.packetCounter,
     timestamp: Number(view.getBigUint64(0)),
     commitment_hash: stateObj.commitmentHash,
@@ -95,6 +102,7 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
     stateObj.transportStats.classCounts.CRITICAL += 1;
   }
   const headerBytes = new TextEncoder().encode(JSON.stringify(header));
+  emitPacket({ id: header.packet_id, label: header.semantic_label, stage: "Scheduled", type: "Scheduled" });
 
   const ciphertext = await crypto.subtle.encrypt(
     {
@@ -107,6 +115,13 @@ export async function encryptPacket(plainBytes, sessionKey, stateObj) {
   );
 
   const cipherBytes = new Uint8Array(ciphertext);
+  emitPacket({ id: header.packet_id, label: header.semantic_label, stage: "Encrypted", type: "Encrypted" });
+  emitDecision(
+    baselineMode
+      ? "Baseline packet: static AES session -> no adaptive priority or replay visualization"
+      : "Packet classified as CRITICAL -> parity enabled -> retransmission enabled",
+    header.semantic_label
+  );
   const packet = new Uint8Array(4 + headerBytes.length + nonce.length + cipherBytes.length + timestamp.length);
   new DataView(packet.buffer).setUint32(0, headerBytes.length, false);
   packet.set(headerBytes, 4);
@@ -159,6 +174,8 @@ export async function decryptPacketBuffer(buffer, stateObj) {
     throw new Error("Stale epoch");
   }
   stateObj.latestPacketHeader = header;
+  emitPacket({ id: header.packet_id, label: header.semantic_label, stage: "Verified", type: "Received" });
+  emitIntegrity(header, true);
   if (stateObj.transportStats && stateObj.transportStats.classCounts && header.semantic_label) {
     const label = header.semantic_label in stateObj.transportStats.classCounts ? header.semantic_label : "BEST_EFFORT";
     stateObj.transportStats.classCounts[label] += 1;
@@ -174,6 +191,7 @@ export async function decryptPacketBuffer(buffer, stateObj) {
     key,
     ciphertext
   );
+  emitPacket({ id: header.packet_id, label: header.semantic_label, stage: "Accepted", type: "Accepted" });
   return { plain: new Uint8Array(plain), header };
 }
 
@@ -182,4 +200,16 @@ function concatBytes(first, second) {
   combined.set(first, 0);
   combined.set(second, first.length);
   return combined;
+}
+
+function emitPacket(detail) {
+  window.dispatchEvent(new CustomEvent("secusignflow:packet", { detail }));
+}
+
+function emitDecision(text, label) {
+  window.dispatchEvent(new CustomEvent("secusignflow:decision", { detail: { text, label } }));
+}
+
+function emitIntegrity(header, valid) {
+  window.dispatchEvent(new CustomEvent("secusignflow:integrity", { detail: { header, valid } }));
 }

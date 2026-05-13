@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     if CERT_PATH.exists() and KEY_PATH.exists():
         print("\n🔐 SSL certificates found - Starting HTTPS server")
-        print("   URL: https://localhost:5000")
+        print("   URL: https://localhost:3000")
         print("   ⚠️  Accept the self-signed certificate warning")
         print("\n   Press Ctrl+C to stop\n")
         socketio.run(
@@ -45,10 +45,11 @@ if __name__ == "__main__":
             host="0.0.0.0",
             port=3000,
             ssl_context=(str(CERT_PATH), str(KEY_PATH)),
+            allow_unsafe_werkzeug=True,
         )
     else:
         print("\n⚠️  SSL certificates not found!")
         print("   Run: python scripts/generate_ssl.py")
         print("   Or starting in HTTP mode (not recommended)...")
-        print("   URL: http://localhost:5000\n")
-        socketio.run(app, host="0.0.0.0", port=3000)
+        print("   URL: http://localhost:3000\n")
+        socketio.run(app, host="0.0.0.0", port=3000, allow_unsafe_werkzeug=True)

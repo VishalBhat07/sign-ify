@@ -30,6 +30,17 @@ export const state = {
   transportPolicy: null,
   commitmentHash: "",
   latestPacketHeader: null,
+  transportMode: "secusignflow",
+  demoEvents: [],
+  packetFlow: [],
+  packetTimeline: [],
+  decisionLog: [],
+  recoveryEvents: [],
+  integrityChain: [],
+  resyncState: {
+    stage: "Session Active",
+    failures: 0
+  },
   transportStats: {
     classCounts: {
       CONTROL: 0,
@@ -38,7 +49,8 @@ export const state = {
       BEST_EFFORT: 0
     },
     recovered: 0,
-    replayRejected: 0
+    replayRejected: 0,
+    rejected: 0
   },
   recognition: null,
   isRecording: false,

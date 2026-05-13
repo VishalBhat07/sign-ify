@@ -4,6 +4,7 @@ import { showTab, getSelectedRole, showToast, addMessage, addSystemMessage, rese
 import { stopIslCapture } from './inference.js';
 import { cleanupPeer, handleOffer, handleAnswer, handleIceCandidate, createOfferForPeer, initializeLocalMedia, toggleLocalCamera, toggleLocalMic } from './webrtc.js';
 import { initDashboard } from './dashboard.js';
+import { initDemoPanels, recordDecision } from './demo_components.js';
 
 function sendChatMessage(message) {
   const text = (message || "").trim();
@@ -33,6 +34,9 @@ function recordPacketClass(label) {
   if (state.transportStats.classCounts[label] !== undefined) {
     state.transportStats.classCounts[label] += 1;
   }
+  window.dispatchEvent(new CustomEvent("secusignflow:packet", {
+    detail: { label, stage: "Packet Classified", type: "Classified" }
+  }));
 }
 
 function setupSpeechRecognition() {
@@ -97,6 +101,7 @@ async function enterConference(joinPayload) {
 
 document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
+  initDemoPanels();
 
   document.querySelectorAll(".tab-btn").forEach((button) => {
     button.addEventListener("click", () => showTab(button.dataset.tabTarget));
@@ -250,8 +255,10 @@ document.addEventListener("DOMContentLoaded", () => {
     state.transportPolicy = transportSync.policy || null;
     state.packetCounter = 0;
     state.commitmentHash = "";
+    state.transportMode = "secusignflow";
     state.sessionKey = await deriveSessionKey(data.room_id, state.roomPassword, state.currentEpoch);
     state.epochKeys.set(state.currentEpoch, state.sessionKey);
+    recordDecision("Policy verified -> rolling AES-GCM epoch session established", "CONTROL");
     
     if (window.epochInterval) clearInterval(window.epochInterval);
     window.epochInterval = setInterval(() => {

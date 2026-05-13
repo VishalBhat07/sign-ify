@@ -100,8 +100,14 @@ function exportMetrics() {
         reliability: reliabilityState.stats,
         epoch: state.currentEpoch,
         packet_counter: state.packetCounter,
+        transport_mode: state.transportMode,
         policy_fingerprint: state.policyFingerprint,
         latest_packet_header: state.latestPacketHeader,
+        packet_flow: state.packetFlow,
+        packet_timeline: state.packetTimeline,
+        decision_log: state.decisionLog,
+        recovery_events: state.recoveryEvents,
+        integrity_chain: state.integrityChain,
         simulator: networkSimulator
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });

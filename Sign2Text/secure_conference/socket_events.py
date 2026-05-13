@@ -11,6 +11,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from .auth import RoomAuth
 from .config import STUN_SERVERS
+from .debug_transport_tools import run_debug_action
 from .rooms import Participant, RoomRegistry
 from .semantic import classify_packet
 
@@ -247,6 +248,22 @@ def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registr
             float(metrics.get("rtt_ms", room.reliability.snapshot.rtt_ms)),
             float(metrics.get("jitter_ms", room.reliability.snapshot.jitter_ms)),
         )
+
+    @socketio.on("transport_debug_action")
+    def on_transport_debug_action(data):
+        room_id, room, participant = get_verified_participant(data)
+        if not room or not participant:
+            return
+
+        action = data.get("action", "")
+        try:
+            event = run_debug_action(room, action)
+        except ValueError as exc:
+            emit("signaling_error", {"error": str(exc)})
+            return
+
+        event["transport_sync"] = room.transport_sync_payload()
+        emit("transport_demo_event", event, room=room_id)
         emit(
             "transport_metrics_ack",
             {

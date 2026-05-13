@@ -26,7 +26,10 @@
     <main id="setupScreen" class="setup-screen">
       <section class="setup-card">
         <h1><i class="fa-solid fa-lock"></i> Secure P2P Conference</h1>
-        <p>Create or join a password-protected room with direct browser-to-browser media.</p>
+        <p>
+          Create or join a password-protected room with direct
+          browser-to-browser media.
+        </p>
 
         <div class="tab-buttons">
           <button class="tab-btn active" data-tab-target="create">
@@ -46,7 +49,11 @@
           </div>
           <div class="form-group">
             <label for="createPassword">Room Password</label>
-            <input type="password" id="createPassword" placeholder="Create a password" />
+            <input
+              type="password"
+              id="createPassword"
+              placeholder="Create a password"
+            />
           </div>
           <div class="form-group">
             <label>Your Role</label>
@@ -104,7 +111,11 @@
           </div>
           <div class="form-group">
             <label for="joinPassword">Room Password</label>
-            <input type="password" id="joinPassword" placeholder="Enter password" />
+            <input
+              type="password"
+              id="joinPassword"
+              placeholder="Enter password"
+            />
           </div>
           <div class="form-group">
             <label>Your Role</label>
@@ -169,7 +180,11 @@
         <section class="video-section">
           <article class="video-container local">
             <video id="localVideo" autoplay playsinline muted></video>
-            <img id="islRenderedOverlay" class="isl-rendered-overlay hidden" alt="ISL overlay" />
+            <img
+              id="islRenderedOverlay"
+              class="isl-rendered-overlay hidden"
+              alt="ISL overlay"
+            />
             <canvas id="islOverlayCanvas" class="isl-overlay hidden"></canvas>
             <canvas id="islCaptureCanvas" class="hidden"></canvas>
             <div id="localPlaceholder" class="video-placeholder">
@@ -185,10 +200,20 @@
                 <span>ISL idle</span>
               </div>
               <div class="media-control-row">
-                <button class="media-toggle" id="btnToggleCamera" type="button" title="Toggle camera">
+                <button
+                  class="media-toggle"
+                  id="btnToggleCamera"
+                  type="button"
+                  title="Toggle camera"
+                >
                   <i class="fa-solid fa-video-slash"></i>
                 </button>
-                <button class="media-toggle" id="btnToggleMic" type="button" title="Toggle microphone">
+                <button
+                  class="media-toggle"
+                  id="btnToggleMic"
+                  type="button"
+                  title="Toggle microphone"
+                >
                   <i class="fa-solid fa-microphone-slash"></i>
                 </button>
               </div>
@@ -224,7 +249,11 @@
             </div>
           </div>
           <div class="chat-input">
-            <input type="text" id="voiceInput" placeholder="Type a message..." />
+            <input
+              type="text"
+              id="voiceInput"
+              placeholder="Type a message..."
+            />
             <button class="btn-voice" id="btnVoice" type="button">
               <i class="fa-solid fa-microphone"></i>
             </button>
@@ -235,179 +264,235 @@
         </aside>
 
         <div class="dashboard-section" id="researchDashboard">
-           <div class="dashboard-header">
-             <h3><i class="fa-solid fa-flask"></i> Research</h3>
-           </div>
-           <div class="dashboard-content">
-             <div class="dashboard-group">
-               <h4>Secure Session</h4>
-               <div class="metric-row">
-                 <span>TLS Signaling</span>
-                 <span>Active</span>
-               </div>
-               <div class="metric-row">
-                 <span>WebRTC SRTP</span>
-                 <span id="monitorWebrtc">Waiting</span>
-               </div>
-               <div class="metric-row">
-                 <span>AES-GCM Layer</span>
-                 <span>Active</span>
-               </div>
-               <div class="metric-row">
-                 <span>Policy</span>
-                 <span id="monitorPolicy">Pending</span>
-               </div>
-               <div class="metric-row">
-                 <span>Fingerprint</span>
-                 <span id="monitorPolicyFingerprint">...</span>
-               </div>
-             </div>
+          <div class="dashboard-header">
+            <h3><i class="fa-solid fa-sliders"></i> Advanced controls</h3>
+            <div class="dashboard-actions">
+              <button
+                id="btnToggleDashboard"
+                class="btn-icon"
+                title="Toggle dashboard"
+              >
+                <i class="fa-solid fa-angle-up"></i>
+              </button>
+            </div>
+          </div>
+          <div class="dashboard-content">
+            <div class="dashboard-group">
+              <h4>Secure Session</h4>
+              <div class="metric-row">
+                <span>TLS Signaling</span>
+                <span>Active</span>
+              </div>
+              <div class="metric-row">
+                <span>WebRTC SRTP</span>
+                <span id="monitorWebrtc">Waiting</span>
+              </div>
+              <div class="metric-row">
+                <span>AES-GCM Layer</span>
+                <span>Active</span>
+              </div>
+              <div class="metric-row">
+                <span>Policy</span>
+                <span id="monitorPolicy">Pending</span>
+              </div>
+              <div class="metric-row">
+                <span>Fingerprint</span>
+                <span id="monitorPolicyFingerprint">...</span>
+              </div>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Packet Classes</h4>
-               <div class="metric-row">
-                 <span>CONTROL</span>
-                 <span id="classControl">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>CRITICAL</span>
-                 <span id="classCritical">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>INTERACTIVE</span>
-                 <span id="classInteractive">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>BEST_EFFORT</span>
-                 <span id="classBestEffort">0</span>
-               </div>
-             </div>
+            <div class="dashboard-group">
+              <h4>Packet Classes</h4>
+              <div class="metric-row">
+                <span>CONTROL</span>
+                <span id="classControl">0</span>
+              </div>
+              <div class="metric-row">
+                <span>CRITICAL</span>
+                <span id="classCritical">0</span>
+              </div>
+              <div class="metric-row">
+                <span>INTERACTIVE</span>
+                <span id="classInteractive">0</span>
+              </div>
+              <div class="metric-row">
+                <span>BEST_EFFORT</span>
+                <span id="classBestEffort">0</span>
+              </div>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Rolling Keys</h4>
-               <div class="metric-row">
-                 <span>Current Epoch</span>
-                 <span id="monitorEpoch">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>Epoch Progress</span>
-                 <span id="monitorEpochProgress">0 / 32</span>
-               </div>
-               <div class="metric-row">
-                 <span>Replay Window</span>
-                 <span id="monitorReplay">Enabled</span>
-               </div>
-             </div>
+            <div class="dashboard-group">
+              <h4>Rolling Keys</h4>
+              <div class="metric-row">
+                <span>Current Epoch</span>
+                <span id="monitorEpoch">0</span>
+              </div>
+              <div class="metric-row">
+                <span>Epoch Progress</span>
+                <span id="monitorEpochProgress">0 / 32</span>
+              </div>
+              <div class="metric-row">
+                <span>Replay Window</span>
+                <span id="monitorReplay">Enabled</span>
+              </div>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Live Metrics</h4>
-               <div class="metric-row">
-                 <span>Packets Sent</span>
-                 <span id="statsSent">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>Packets Received</span>
-                 <span id="statsReceived">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>ACKs Received</span>
-                 <span id="statsAcked">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>Retransmissions</span>
-                 <span id="statsRetries">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>Dupes Dropped</span>
-                 <span id="statsDupes">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>Recovered</span>
-                 <span id="statsRecovered">0</span>
-               </div>
-               <div class="metric-row">
-                 <span>Replay Rejected</span>
-                 <span id="statsReplayRejected">0</span>
-               </div>
-             </div>
+            <div class="dashboard-group">
+              <h4>Live Metrics</h4>
+              <div class="metric-row">
+                <span>Packets Sent</span>
+                <span id="statsSent">0</span>
+              </div>
+              <div class="metric-row">
+                <span>Packets Received</span>
+                <span id="statsReceived">0</span>
+              </div>
+              <div class="metric-row">
+                <span>ACKs Received</span>
+                <span id="statsAcked">0</span>
+              </div>
+              <div class="metric-row">
+                <span>Retransmissions</span>
+                <span id="statsRetries">0</span>
+              </div>
+              <div class="metric-row">
+                <span>Dupes Dropped</span>
+                <span id="statsDupes">0</span>
+              </div>
+              <div class="metric-row">
+                <span>Recovered</span>
+                <span id="statsRecovered">0</span>
+              </div>
+              <div class="metric-row">
+                <span>Replay Rejected</span>
+                <span id="statsReplayRejected">0</span>
+              </div>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Metric Meanings</h4>
-               <dl class="metric-help">
-                 <div>
-                   <dt>Policy Verified</dt>
-                   <dd>The active transport rules match the signed policy fingerprint.</dd>
-                 </div>
-                 <div>
-                   <dt>Packet Classes</dt>
-                   <dd>Packets grouped as CONTROL, CRITICAL, INTERACTIVE, or BEST_EFFORT before scheduling.</dd>
-                 </div>
-                 <div>
-                   <dt>Current Epoch</dt>
-                   <dd>The rolling AES-GCM key generation currently used for secure packets.</dd>
-                 </div>
-                 <div>
-                   <dt>Epoch Progress</dt>
-                   <dd>How many packets have used the current epoch key before rotation.</dd>
-                 </div>
-                 <div>
-                   <dt>Recovered</dt>
-                   <dd>Packets protected by retransmission or verified parity recovery behavior.</dd>
-                 </div>
-                 <div>
-                   <dt>Replay Rejected</dt>
-                   <dd>Duplicate, stale, or out-of-window packets rejected by replay protection.</dd>
-                 </div>
-                 <div>
-                   <dt>Latest Header</dt>
-                   <dd>Authenticated packet metadata used as AES-GCM associated data.</dd>
-                 </div>
-               </dl>
-             </div>
+            <div class="dashboard-group">
+              <h4>Metric Meanings</h4>
+              <dl class="metric-help">
+                <div>
+                  <dt>Policy Verified</dt>
+                  <dd>
+                    The active transport rules match the signed policy
+                    fingerprint.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Packet Classes</dt>
+                  <dd>
+                    Packets grouped as CONTROL, CRITICAL, INTERACTIVE, or
+                    BEST_EFFORT before scheduling.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Current Epoch</dt>
+                  <dd>
+                    The rolling AES-GCM key generation currently used for secure
+                    packets.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Epoch Progress</dt>
+                  <dd>
+                    How many packets have used the current epoch key before
+                    rotation.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Recovered</dt>
+                  <dd>
+                    Packets protected by retransmission or verified parity
+                    recovery behavior.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Replay Rejected</dt>
+                  <dd>
+                    Duplicate, stale, or out-of-window packets rejected by
+                    replay protection.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Latest Header</dt>
+                  <dd>
+                    Authenticated packet metadata used as AES-GCM associated
+                    data.
+                  </dd>
+                </div>
+              </dl>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Savings (est.)</h4>
-               <div class="metric-row">
-                 <span>Data Transferred</span>
-                 <span id="statsBytes">0 B</span>
-               </div>
-             </div>
-             
-             <div class="dashboard-group">
-               <h4>Degradation Sandbox</h4>
-               <div class="loss-presets">
-                  <button type="button" data-loss-preset="0">0%</button>
-                  <button type="button" data-loss-preset="5">5%</button>
-                  <button type="button" data-loss-preset="10">10%</button>
-                  <button type="button" data-loss-preset="20">20%</button>
-               </div>
-               <div class="dashboard-slider">
-                  <label>Packet Loss <span id="simPacketLossLabel">0%</span></label>
-                  <input type="range" id="simPacketLoss" min="0" max="80" value="0">
-               </div>
-               <div class="dashboard-slider">
-                  <label>Base Delay <span id="simDelayLabel">0ms</span></label>
-                  <input type="range" id="simDelay" min="0" max="1000" value="0">
-               </div>
-               <div class="dashboard-slider">
-                  <label>Jitter <span id="simJitterLabel">0ms</span></label>
-                  <input type="range" id="simJitter" min="0" max="500" value="0">
-               </div>
-             </div>
+            <div class="dashboard-group">
+              <h4>Savings (est.)</h4>
+              <div class="metric-row">
+                <span>Data Transferred</span>
+                <span id="statsBytes">0 B</span>
+              </div>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Latest Packet Header</h4>
-               <pre class="packet-header-view" id="latestPacketHeader">{}</pre>
-             </div>
+            <div class="dashboard-group">
+              <h4>Degradation Sandbox</h4>
+              <div class="loss-presets">
+                <button type="button" data-loss-preset="0">0%</button>
+                <button type="button" data-loss-preset="5">5%</button>
+                <button type="button" data-loss-preset="10">10%</button>
+                <button type="button" data-loss-preset="20">20%</button>
+              </div>
+              <div class="dashboard-slider">
+                <label
+                  >Packet Loss <span id="simPacketLossLabel">0%</span></label
+                >
+                <input
+                  type="range"
+                  id="simPacketLoss"
+                  min="0"
+                  max="80"
+                  value="0"
+                />
+              </div>
+              <div class="dashboard-slider">
+                <label>Base Delay <span id="simDelayLabel">0ms</span></label>
+                <input
+                  type="range"
+                  id="simDelay"
+                  min="0"
+                  max="1000"
+                  value="0"
+                />
+              </div>
+              <div class="dashboard-slider">
+                <label>Jitter <span id="simJitterLabel">0ms</span></label>
+                <input
+                  type="range"
+                  id="simJitter"
+                  min="0"
+                  max="500"
+                  value="0"
+                />
+              </div>
+            </div>
 
-             <div class="dashboard-group">
-               <h4>Export</h4>
-               <button class="btn dashboard-export" id="btnExportMetrics" type="button">
-                 <i class="fa-solid fa-file-arrow-down"></i>
-                 <span>Download JSON</span>
-               </button>
-             </div>
-           </div>
+            <div class="dashboard-group">
+              <h4>Latest Packet Header</h4>
+              <pre class="packet-header-view" id="latestPacketHeader">{}</pre>
+            </div>
+
+            <div class="dashboard-group">
+              <h4>Export</h4>
+              <button
+                class="btn dashboard-export"
+                id="btnExportMetrics"
+                type="button"
+              >
+                <i class="fa-solid fa-file-arrow-down"></i>
+                <span>Download JSON</span>
+              </button>
+            </div>
+
+            <div id="advancedDemoPanels"></div>
+          </div>
         </div>
       </section>
     </main>
@@ -415,11 +500,60 @@
     <div id="toast" class="toast hidden"></div>
 
     <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+      crossorigin="anonymous"
+    ></script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
-    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/main.js') }}"
+    ></script>
+    <script>
+      // Dashboard collapse toggle (small, self-contained)
+      (function () {
+        const btn = document.getElementById("btnToggleDashboard");
+        const dashboard = document.getElementById("researchDashboard");
+        if (!btn || !dashboard) return;
+
+        // Restore state from localStorage
+        const collapsedKey = "dashboardCollapsed_v1";
+        const isCollapsed = localStorage.getItem(collapsedKey) === "1";
+        if (isCollapsed) dashboard.classList.add("collapsed");
+
+        function updateIcon() {
+          const icon = btn.querySelector("i");
+          if (!icon) return;
+          if (dashboard.classList.contains("collapsed")) {
+            icon.className = "fa-solid fa-angle-down";
+            btn.setAttribute("aria-expanded", "false");
+          } else {
+            icon.className = "fa-solid fa-angle-up";
+            btn.setAttribute("aria-expanded", "true");
+          }
+        }
+
+        updateIcon();
+
+        btn.addEventListener("click", () => {
+          dashboard.classList.toggle("collapsed");
+          const collapsed = dashboard.classList.contains("collapsed");
+          localStorage.setItem(collapsedKey, collapsed ? "1" : "0");
+          updateIcon();
+        });
+      })();
+    </script>
   </body>
 </html>

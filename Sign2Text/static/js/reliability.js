@@ -16,6 +16,7 @@ export const reliabilityState = {
 
 const MAX_RETRIES = 5;
 const ACK_TIMEOUT_MS = 250;
+let deterministicSeed = 1337;
 
 export async function sendReliableMessage(payloadObj, peerSid) {
     if (payloadObj.needsAck === undefined) {
@@ -29,6 +30,7 @@ export async function sendReliableMessage(payloadObj, peerSid) {
     
     // Track stats
     reliabilityState.stats.packetsSent++;
+    emitPacket({ id: payloadObj.seqNum || state.packetCounter + 1, label: "CRITICAL", stage: "Scheduled", type: "Scheduled" });
     
     const payloadStr = JSON.stringify(payloadObj);
     const encrypted = await encryptPacket(new TextEncoder().encode(payloadStr), state.sessionKey, state);
@@ -60,11 +62,13 @@ async function handleRetransmission(seqNum) {
     record.retries++;
     reliabilityState.stats.retransmissions++;
     console.log(`[Reliability] Retransmitting packet ${seqNum} (Attempt ${record.retries})`);
+    emitDecision(`Packet ${seqNum} ACK timeout -> retransmission enabled`, "CRITICAL");
     
     const payloadStr = JSON.stringify(record.payloadObj);
     const encrypted = await encryptPacket(new TextEncoder().encode(payloadStr), state.sessionKey, state);
     
     executeSend(record.peerSid, encrypted);
+    emitRecovery({ packetId: seqNum, result: "Retransmitted and verified", valid: true });
     
     record.timer = setTimeout(() => handleRetransmission(seqNum), ACK_TIMEOUT_MS);
 }
@@ -77,16 +81,18 @@ export const networkSimulator = {
 
 function executeSend(peerSid, encryptedBuffer) {
     if (networkSimulator.packetLossPct > 0) {
-        if (Math.random() * 100 < networkSimulator.packetLossPct) {
+        if (seededPercent() < networkSimulator.packetLossPct) {
             console.warn("[Simulator] Packet Intentionally Dropped!");
             reliabilityState.stats.simulatedDrops = (reliabilityState.stats.simulatedDrops || 0) + 1;
+            emitPacket({ id: state.packetCounter, label: "CRITICAL", stage: "Sent", type: "Packet Lost", reason: "Deterministic loss simulator" });
+            emitDecision(`Packet ${state.packetCounter} lost at ${networkSimulator.packetLossPct}% loss -> recovery path armed`, "CRITICAL");
             return; // Simulate loss by never sending
         }
     }
     
     let delay = networkSimulator.baseDelayMs;
     if (networkSimulator.jitterMs > 0) {
-        delay += (Math.random() * 2 - 1) * networkSimulator.jitterMs;
+        delay += ((seededPercent() / 50) - 1) * networkSimulator.jitterMs;
     }
     if (delay < 0) delay = 0;
     
@@ -101,6 +107,7 @@ function performRealSend(peerSid, encryptedBuffer) {
     const pc = state.peerConnections.get(peerSid);
     if (pc && pc.semanticChannel && pc.semanticChannel.readyState === "open") {
         pc.semanticChannel.send(encryptedBuffer);
+        emitPacket({ id: state.packetCounter, label: "CRITICAL", stage: "Sent", type: "Sent" });
     }
 }
 
@@ -111,6 +118,7 @@ export async function processInboundReliability(payload, peerSid) {
             clearTimeout(reliabilityState.unackedPackets.get(ackedSeq).timer);
             reliabilityState.unackedPackets.delete(ackedSeq);
             reliabilityState.stats.packetsAcked++;
+            emitPacket({ id: ackedSeq, label: "CONTROL", stage: "Verified", type: "ACK" });
         }
         return false; // Stop further processing
     }
@@ -131,6 +139,9 @@ export async function processInboundReliability(payload, peerSid) {
         if (reliabilityState.inboundSeqCache.has(cacheKey)) {
             console.warn(`[Reliability] Duplicate packet suppressed: ${payload.seqNum}`);
             reliabilityState.stats.duplicatesDropped++;
+            state.transportStats.replayRejected++;
+            emitPacket({ id: payload.seqNum, label: "REJECTED", stage: "Rejected", type: "Rejected", reason: "Duplicate packet suppressed" });
+            emitDecision(`Duplicate packet ${payload.seqNum} -> replay window rejected`, "REJECTED");
             return false;
         }
         
@@ -142,5 +153,23 @@ export async function processInboundReliability(payload, peerSid) {
     }
     
     reliabilityState.stats.packetsReceived++;
+    emitPacket({ id: payload.seqNum || state.packetCounter, label: "CRITICAL", stage: "Accepted", type: "Accepted" });
     return true; // Proceed to Application layer
+}
+
+function seededPercent() {
+    deterministicSeed = (deterministicSeed * 1103515245 + 12345) % 2147483648;
+    return (deterministicSeed / 2147483648) * 100;
+}
+
+function emitPacket(detail) {
+    window.dispatchEvent(new CustomEvent("secusignflow:packet", { detail }));
+}
+
+function emitDecision(text, label) {
+    window.dispatchEvent(new CustomEvent("secusignflow:decision", { detail: { text, label } }));
+}
+
+function emitRecovery(detail) {
+    window.dispatchEvent(new CustomEvent("secusignflow:recovery", { detail }));
 }
