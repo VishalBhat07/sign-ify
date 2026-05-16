@@ -10,20 +10,17 @@ from flask_socketio import SocketIO
 from .auth import RoomAuth
 from .config import MODEL_PATH
 from .rooms import RoomRegistry
-from .services.recognition import SignLanguageRecognizer
 from .socket_events import register_socket_events
 
 
 socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
 room_registry = RoomRegistry()
 room_auth = RoomAuth(secret_key=os.urandom(32).hex())
-recognizer = SignLanguageRecognizer(MODEL_PATH)
 
 
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
     app.config["SECRET_KEY"] = os.urandom(32).hex()
-    app.config["RECOGNIZER"] = recognizer
     socketio.init_app(app)
 
     @app.route("/")
