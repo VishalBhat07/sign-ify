@@ -8,6 +8,7 @@ Phase 4 architecture:
 - WebRTC peer-to-peer media transport
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -35,21 +36,28 @@ if __name__ == "__main__":
     print("  ✅ Socket.IO Signaling over HTTPS")
     print("=" * 60)
 
-    if CERT_PATH.exists() and KEY_PATH.exists():
+    port = int(os.environ.get("PORT", 3000))
+    disable_ssl = os.environ.get("DISABLE_SSL") == "1"
+
+    if CERT_PATH.exists() and KEY_PATH.exists() and not disable_ssl:
         print("\n🔐 SSL certificates found - Starting HTTPS server")
-        print("   URL: https://localhost:3000")
+        print(f"   URL: https://localhost:{port}")
         print("   ⚠️  Accept the self-signed certificate warning")
         print("\n   Press Ctrl+C to stop\n")
         socketio.run(
             app,
             host="0.0.0.0",
-            port=3000,
+            port=port,
             ssl_context=(str(CERT_PATH), str(KEY_PATH)),
             allow_unsafe_werkzeug=True,
         )
     else:
-        print("\n⚠️  SSL certificates not found!")
-        print("   Run: python scripts/generate_ssl.py")
-        print("   Or starting in HTTP mode (not recommended)...")
-        print("   URL: http://localhost:3000\n")
-        socketio.run(app, host="0.0.0.0", port=3000, allow_unsafe_werkzeug=True)
+        if disable_ssl:
+            print("\n⚠️  Running in HTTP mode (SSL disabled via ENV)")
+        else:
+            print("\n⚠️  SSL certificates not found!")
+            print("   Run: python scripts/generate_ssl.py")
+            print("   Or starting in HTTP mode (not recommended)...")
+        
+        print(f"   URL: http://localhost:{port}\n")
+        socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
