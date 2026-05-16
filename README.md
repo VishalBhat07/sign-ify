@@ -1,3 +1,12 @@
+---
+title: Sign-ify
+emoji: 🤟
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # SecuSignFlow / Echo-Sign 2.0
 
 > Semantic-aware secure transport for real-time assistive conferencing.
