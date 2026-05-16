@@ -3,556 +3,301 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Echo-Sign 2.0 - Secure P2P Conference</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@300;400;500;700&family=JetBrains+Mono:wght@500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/conference_secure.css') }}"
-    />
+    <title>Echo-Sign 2.0 // TERMINAL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/conference_secure.css') }}" />
   </head>
   <body>
-    <div class="security-banner">
-      <i class="fa-solid fa-shield-halved"></i>
-      Secure P2P media over WebRTC SRTP with TLS signaling
+    <div class="security-banner caution-tape">
+      <span>[ SECURE P2P WEBRTC SRTP // TLS SIGNALING ]</span>
     </div>
 
-    <main id="setupScreen" class="setup-screen">
-      <section class="setup-card">
-        <h1><i class="fa-solid fa-lock"></i> Secure P2P Conference</h1>
-        <p>
-          Create or join a password-protected room with direct
-          browser-to-browser media.
-        </p>
+    <section id="setupScreen" class="setup-screen grid-12">
+      <div class="setup-card">
+        <header class="card-header">
+          <h1>ECHO-SIGN // 2.0</h1>
+          <p>SECURE P2P TELEMETRY LINK</p>
+        </header>
 
         <div class="tab-buttons">
-          <button class="tab-btn active" data-tab-target="create">
-            <i class="fa-solid fa-plus"></i>
-            <span>Create Room</span>
-          </button>
-          <button class="tab-btn" data-tab-target="join">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            <span>Join Room</span>
-          </button>
+          <button class="tab-btn active" data-tab-target="create">[ CREATE_ROOM ]</button>
+          <button class="tab-btn" data-tab-target="join">[ JOIN_ROOM ]</button>
         </div>
 
         <section id="createTab" class="tab-content active">
           <div class="form-group">
-            <label for="createName">Your Name</label>
-            <input type="text" id="createName" placeholder="Enter your name" />
+            <label for="createName">OPERATOR_ID</label>
+            <input type="text" id="createName" placeholder="ENTER IDENTIFIER" />
           </div>
           <div class="form-group">
-            <label for="createPassword">Room Password</label>
-            <input
-              type="password"
-              id="createPassword"
-              placeholder="Create a password"
-            />
+            <label for="createPassword">ENCRYPTION_KEY</label>
+            <input type="password" id="createPassword" placeholder="ENTER PASSPHRASE" />
           </div>
           <div class="form-group">
-            <label>Your Role</label>
+            <label>ROLE_ASSIGNMENT</label>
             <div class="role-selector" data-role-group="create">
-              <button class="role-option" data-role="signer" type="button">
-                <i class="fa-solid fa-hands-asl-interpreting"></i>
-                <span>Signer</span>
-              </button>
-              <button class="role-option" data-role="viewer" type="button">
-                <i class="fa-solid fa-eye"></i>
-                <span>Viewer</span>
-              </button>
+              <button class="role-option" data-role="signer" type="button">SIGNER</button>
+              <button class="role-option" data-role="viewer" type="button">VIEWER</button>
             </div>
           </div>
           <div class="form-group media-options">
-            <label>Media Options</label>
+            <label>HARDWARE_ACCESS</label>
             <label class="check-option">
               <input type="checkbox" id="createCamera" checked />
-              <span>Publish camera</span>
+              <span>OPTICS</span>
             </label>
             <label class="check-option">
               <input type="checkbox" id="createMic" />
-              <span>Publish microphone</span>
+              <span>AUDIO</span>
             </label>
           </div>
-          <button class="btn" id="btnCreate" type="button">
-            <i class="fa-solid fa-plus"></i>
-            <span>Create Secure Room</span>
-          </button>
+          <button class="btn action-btn" id="btnCreate" type="button">INITIALIZE_ROOM</button>
 
           <div id="roomCreated" class="room-created hidden">
             <div class="room-id-display">
-              <p>Room ID</p>
+              <p>ROOM_HASH</p>
               <code id="newRoomId"></code>
-              <button class="copy-btn" id="copyRoomId" type="button">
-                <i class="fa-solid fa-copy"></i>
-                <span>Copy ID</span>
-              </button>
+              <button class="btn copy-btn" id="copyRoomId" type="button">[ COPY ]</button>
             </div>
-            <button class="btn" id="btnEnterRoom" type="button">
-              <i class="fa-solid fa-door-open"></i>
-              <span>Enter Room</span>
-            </button>
+            <button class="btn action-btn" id="btnEnterRoom" type="button">ENTER_LINK</button>
           </div>
         </section>
 
         <section id="joinTab" class="tab-content">
           <div class="form-group">
-            <label for="joinName">Your Name</label>
-            <input type="text" id="joinName" placeholder="Enter your name" />
+            <label for="joinName">OPERATOR_ID</label>
+            <input type="text" id="joinName" placeholder="ENTER IDENTIFIER" />
           </div>
           <div class="form-group">
-            <label for="joinRoomId">Room ID</label>
-            <input type="text" id="joinRoomId" placeholder="Paste room ID" />
+            <label for="joinRoomId">ROOM_HASH</label>
+            <input type="text" id="joinRoomId" placeholder="PASTE HASH" />
           </div>
           <div class="form-group">
-            <label for="joinPassword">Room Password</label>
-            <input
-              type="password"
-              id="joinPassword"
-              placeholder="Enter password"
-            />
+            <label for="joinPassword">ENCRYPTION_KEY</label>
+            <input type="password" id="joinPassword" placeholder="ENTER PASSPHRASE" />
           </div>
           <div class="form-group">
-            <label>Your Role</label>
+            <label>ROLE_ASSIGNMENT</label>
             <div class="role-selector" data-role-group="join">
-              <button class="role-option" data-role="signer" type="button">
-                <i class="fa-solid fa-hands-asl-interpreting"></i>
-                <span>Signer</span>
-              </button>
-              <button class="role-option" data-role="viewer" type="button">
-                <i class="fa-solid fa-eye"></i>
-                <span>Viewer</span>
-              </button>
+              <button class="role-option" data-role="signer" type="button">SIGNER</button>
+              <button class="role-option" data-role="viewer" type="button">VIEWER</button>
             </div>
           </div>
           <div class="form-group media-options">
-            <label>Media Options</label>
+            <label>HARDWARE_ACCESS</label>
             <label class="check-option">
               <input type="checkbox" id="joinCamera" />
-              <span>Publish camera</span>
+              <span>OPTICS</span>
             </label>
             <label class="check-option">
               <input type="checkbox" id="joinMic" />
-              <span>Publish microphone</span>
+              <span>AUDIO</span>
             </label>
           </div>
-          <button class="btn" id="btnJoin" type="button">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            <span>Join Room</span>
-          </button>
+          <button class="btn action-btn" id="btnJoin" type="button">ESTABLISH_LINK</button>
         </section>
-      </section>
-    </main>
+      </div>
+    </section>
 
     <main id="conferenceScreen" class="conference-screen hidden">
       <header class="conference-header">
         <div class="conference-info">
-          <h2 id="roomName">Secure Room</h2>
-          <small id="userRole">Role: viewer</small>
+          <h2 id="roomName">SYS.ROOM</h2>
+          <small>OP_ROLE: <span id="userRole">VIEWER</span></small>
         </div>
         <div class="status-badges">
-          <div class="badge">
-            <i class="fa-solid fa-video"></i>
-            <span id="mediaStatus">WebRTC connecting</span>
+          <div class="badge neon-badge" id="mediaStatusBadge">
+            <i class="fa-solid fa-link"></i>
+            <span id="mediaStatus">WEBRTC_CONNECTING</span>
           </div>
           <div class="badge">
             <i class="fa-solid fa-key"></i>
-            <span id="keyFingerprint">Room key: ...</span>
+            <span id="keyFingerprint">KEY: ...</span>
           </div>
           <div class="badge">
             <i class="fa-solid fa-clock-rotate-left"></i>
-            <span id="epochBadge">Epoch 0</span>
+            <span id="epochBadge">EPOCH_0</span>
           </div>
           <div class="badge">
             <i class="fa-solid fa-users"></i>
             <span id="participantCount">1</span>
           </div>
-          <button class="btn-leave" id="btnLeave" type="button">Leave</button>
+          <button class="btn btn-telemetry" id="btnOpenTelemetry" type="button"><i class="fa-solid fa-chart-pie"></i> TELEMETRY</button>
+          <button class="btn btn-leave" id="btnLeave" type="button">ABORT</button>
         </div>
       </header>
 
-      <section class="conference-main">
-        <section class="video-section">
-          <article class="video-container local">
-            <video id="localVideo" autoplay playsinline muted></video>
-            <img
-              id="islRenderedOverlay"
-              class="isl-rendered-overlay hidden"
-              alt="ISL overlay"
-            />
-            <canvas id="islOverlayCanvas" class="isl-overlay hidden"></canvas>
-            <canvas id="islCaptureCanvas" class="hidden"></canvas>
-            <div id="localPlaceholder" class="video-placeholder">
-              Camera preview will appear here after permission is granted.
-            </div>
-            <div class="video-overlay">
-              <div class="video-badge">
-                <i class="fa-solid fa-user"></i>
-                <span>You (<span id="yourRole">-</span>)</span>
+      <section class="conference-layout">
+        <div class="media-column">
+          <section class="video-grid">
+            <article class="video-container local">
+              <video id="localVideo" autoplay playsinline muted></video>
+              <img id="islRenderedOverlay" class="isl-rendered-overlay hidden" alt="ISL overlay" />
+              <canvas id="islOverlayCanvas" class="isl-overlay hidden"></canvas>
+              <canvas id="islCaptureCanvas" class="hidden"></canvas>
+              
+              <div id="localPlaceholder" class="video-placeholder">
+                [ WAITING_FOR_OPTICS ]
               </div>
-              <div class="video-badge" id="islStatusBadge">
-                <i class="fa-solid fa-hands-asl-interpreting"></i>
-                <span>ISL idle</span>
+              
+              <div class="video-overlay">
+                <div class="video-badge">
+                  <span>LOCAL_OP (<span id="yourRole">-</span>)</span>
+                </div>
+                <div class="video-badge neon-badge" id="islStatusBadgeWrapper">
+                  <i class="fa-solid fa-crosshairs"></i>
+                  <span id="islStatusBadge">ISL_IDLE</span>
+                </div>
+                <div class="media-control-row">
+                  <button class="media-toggle" id="btnToggleCamera" type="button" title="Toggle optics">
+                    <i class="fa-solid fa-video-slash"></i>
+                  </button>
+                  <button class="media-toggle" id="btnToggleMic" type="button" title="Toggle audio">
+                    <i class="fa-solid fa-microphone-slash"></i>
+                  </button>
+                </div>
               </div>
-              <div class="media-control-row">
-                <button
-                  class="media-toggle"
-                  id="btnToggleCamera"
-                  type="button"
-                  title="Toggle camera"
-                >
-                  <i class="fa-solid fa-video-slash"></i>
-                </button>
-                <button
-                  class="media-toggle"
-                  id="btnToggleMic"
-                  type="button"
-                  title="Toggle microphone"
-                >
-                  <i class="fa-solid fa-microphone-slash"></i>
-                </button>
-              </div>
-            </div>
-          </article>
+            </article>
 
-          <article class="video-container remote">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <div id="remotePlaceholder" class="video-placeholder">
-              Waiting for a peer connection...
-            </div>
-            <div class="video-overlay">
-              <div class="video-badge" id="remoteLabel">
-                <i class="fa-solid fa-user-group"></i>
-                <span>No remote peer yet</span>
+            <article class="video-container remote">
+              <video id="remoteVideo" autoplay playsinline></video>
+              <div id="remotePlaceholder" class="video-placeholder">
+                [ AWAITING_REMOTE_PEER ]
               </div>
-              <div class="video-badge" id="remoteGestureBadge">
-                <i class="fa-solid fa-language"></i>
-                <span>No gesture detected yet</span>
+              <div class="video-overlay">
+                <div class="video-badge" id="remoteLabel">
+                  <span>NO_PEER_DETECTED</span>
+                </div>
+                <div class="video-badge neon-badge" id="remoteGestureBadgeWrapper">
+                  <i class="fa-solid fa-language"></i>
+                  <span id="remoteGestureBadge">NO_DATA_RX</span>
+                </div>
               </div>
-            </div>
-          </article>
-        </section>
+            </article>
+          </section>
 
-        <aside class="chat-section">
-          <div class="chat-header">
-            <i class="fa-solid fa-comments"></i>
-            Signed room chat
-          </div>
-          <div class="chat-messages" id="chatMessages">
-            <div class="empty-state">
-              Messages stay inside the authenticated room.
+          <aside class="chat-section">
+            <div class="chat-header">
+              <span>[ SECURE_LOG ]</span>
             </div>
-          </div>
-          <div class="chat-input">
-            <input
-              type="text"
-              id="voiceInput"
-              placeholder="Type a message..."
-            />
-            <button class="btn-voice" id="btnVoice" type="button">
-              <i class="fa-solid fa-microphone"></i>
-            </button>
-            <button class="btn-send" id="btnSend" type="button">
-              <i class="fa-solid fa-paper-plane"></i>
-            </button>
-          </div>
-        </aside>
+            <div class="chat-messages" id="chatMessages">
+              <div class="empty-state">ENCRYPTED STREAM INITIALIZED...</div>
+            </div>
+            <div class="chat-input-row">
+              <input type="text" id="voiceInput" placeholder="TX_DATA..." />
+              <button class="btn-voice" id="btnVoice" type="button"><i class="fa-solid fa-microphone"></i></button>
+              <button class="btn-send" id="btnSend" type="button"><i class="fa-solid fa-terminal"></i></button>
+            </div>
+          </aside>
+        </div>
 
-        <div class="dashboard-section" id="researchDashboard">
+        <aside class="dashboard-panel collapsed" id="researchDashboard">
           <div class="dashboard-header">
-            <h3><i class="fa-solid fa-sliders"></i> Advanced controls</h3>
-            <div class="dashboard-actions">
-              <button
-                id="btnToggleDashboard"
-                class="btn-icon"
-                title="Toggle dashboard"
-              >
-                <i class="fa-solid fa-angle-up"></i>
-              </button>
-            </div>
+            <h3>[ TELEMETRY_HUD ]</h3>
+            <button id="btnToggleDashboard" class="btn-icon" title="Close"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="dashboard-content">
-            <div class="dashboard-group">
-              <h4>Secure Session</h4>
-              <div class="metric-row">
-                <span>TLS Signaling</span>
-                <span>Active</span>
-              </div>
-              <div class="metric-row">
-                <span>WebRTC SRTP</span>
-                <span id="monitorWebrtc">Waiting</span>
-              </div>
-              <div class="metric-row">
-                <span>AES-GCM Layer</span>
-                <span>Active</span>
-              </div>
-              <div class="metric-row">
-                <span>Policy</span>
-                <span id="monitorPolicy">Pending</span>
-              </div>
-              <div class="metric-row">
-                <span>Fingerprint</span>
-                <span id="monitorPolicyFingerprint">...</span>
-              </div>
-            </div>
-
-            <div class="dashboard-group">
-              <h4>Packet Classes</h4>
-              <div class="metric-row">
-                <span>CONTROL</span>
-                <span id="classControl">0</span>
-              </div>
-              <div class="metric-row">
-                <span>CRITICAL</span>
-                <span id="classCritical">0</span>
-              </div>
-              <div class="metric-row">
-                <span>INTERACTIVE</span>
-                <span id="classInteractive">0</span>
-              </div>
-              <div class="metric-row">
-                <span>BEST_EFFORT</span>
-                <span id="classBestEffort">0</span>
-              </div>
-            </div>
-
-            <div class="dashboard-group">
-              <h4>Rolling Keys</h4>
-              <div class="metric-row">
-                <span>Current Epoch</span>
-                <span id="monitorEpoch">0</span>
-              </div>
-              <div class="metric-row">
-                <span>Epoch Progress</span>
-                <span id="monitorEpochProgress">0 / 32</span>
-              </div>
-              <div class="metric-row">
-                <span>Replay Window</span>
-                <span id="monitorReplay">Enabled</span>
-              </div>
-            </div>
-
-            <div class="dashboard-group">
-              <h4>Live Metrics</h4>
-              <div class="metric-row">
-                <span>Packets Sent</span>
-                <span id="statsSent">0</span>
-              </div>
-              <div class="metric-row">
-                <span>Packets Received</span>
-                <span id="statsReceived">0</span>
-              </div>
-              <div class="metric-row">
-                <span>ACKs Received</span>
-                <span id="statsAcked">0</span>
-              </div>
-              <div class="metric-row">
-                <span>Retransmissions</span>
-                <span id="statsRetries">0</span>
-              </div>
-              <div class="metric-row">
-                <span>Dupes Dropped</span>
-                <span id="statsDupes">0</span>
-              </div>
-              <div class="metric-row">
-                <span>Recovered</span>
-                <span id="statsRecovered">0</span>
-              </div>
-              <div class="metric-row">
-                <span>Replay Rejected</span>
-                <span id="statsReplayRejected">0</span>
-              </div>
-            </div>
-
-            <div class="dashboard-group">
-              <h4>Metric Meanings</h4>
-              <dl class="metric-help">
-                <div>
-                  <dt>Policy Verified</dt>
-                  <dd>
-                    The active transport rules match the signed policy
-                    fingerprint.
-                  </dd>
+            <div class="masonry-wrapper">
+              <div class="dashboard-group">
+                <h4>// SECURITY_LAYER</h4>
+                <div class="metric-row"><span>TLS_SIG</span><span>ACTIVE</span></div>
+                <div class="metric-row"><span>WEBRTC</span><span id="monitorWebrtc">WAITING</span></div>
+                <div class="metric-row"><span>AES_GCM</span><span>ACTIVE</span></div>
+                <div class="metric-row"><span>POLICY</span><span id="monitorPolicy">PENDING</span></div>
+                <div class="metric-row"><span>HASH</span><span id="monitorPolicyFingerprint">...</span></div>
+                <div class="metric-row"><span>EPOCH</span><span id="monitorEpoch">0</span></div>
+                <div class="metric-row"><span>REPLAY</span><span id="monitorReplay">ENABLED</span></div>
+                
+                <div class="metric-row block-loader-container">
+                  <span>EPOCH_PROG</span>
+                  <span id="monitorEpochProgress" class="block-loader-text">0 / 32</span>
                 </div>
-                <div>
-                  <dt>Packet Classes</dt>
-                  <dd>
-                    Packets grouped as CONTROL, CRITICAL, INTERACTIVE, or
-                    BEST_EFFORT before scheduling.
-                  </dd>
-                </div>
-                <div>
-                  <dt>Current Epoch</dt>
-                  <dd>
-                    The rolling AES-GCM key generation currently used for secure
-                    packets.
-                  </dd>
-                </div>
-                <div>
-                  <dt>Epoch Progress</dt>
-                  <dd>
-                    How many packets have used the current epoch key before
-                    rotation.
-                  </dd>
-                </div>
-                <div>
-                  <dt>Recovered</dt>
-                  <dd>
-                    Packets protected by retransmission or verified parity
-                    recovery behavior.
-                  </dd>
-                </div>
-                <div>
-                  <dt>Replay Rejected</dt>
-                  <dd>
-                    Duplicate, stale, or out-of-window packets rejected by
-                    replay protection.
-                  </dd>
-                </div>
-                <div>
-                  <dt>Latest Header</dt>
-                  <dd>
-                    Authenticated packet metadata used as AES-GCM associated
-                    data.
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            <div class="dashboard-group">
-              <h4>Savings (est.)</h4>
-              <div class="metric-row">
-                <span>Data Transferred</span>
-                <span id="statsBytes">0 B</span>
               </div>
-            </div>
 
-            <div class="dashboard-group">
-              <h4>Degradation Sandbox</h4>
-              <div class="loss-presets">
-                <button type="button" data-loss-preset="0">0%</button>
-                <button type="button" data-loss-preset="5">5%</button>
-                <button type="button" data-loss-preset="10">10%</button>
-                <button type="button" data-loss-preset="20">20%</button>
+              <div class="dashboard-group">
+                <h4>// PHYSICAL_LAYER</h4>
+                <div class="metric-row"><span>TX_PKT</span><span id="statsSent">0</span></div>
+                <div class="metric-row"><span>RX_PKT</span><span id="statsReceived">0</span></div>
+                <div class="metric-row"><span>ACK_RX</span><span id="statsAcked">0</span></div>
+                <div class="metric-row"><span>RETX</span><span id="statsRetries">0</span></div>
+                <div class="metric-row"><span>DUP_DROP</span><span id="statsDupes">0</span></div>
+                <div class="metric-row"><span>RECOVER</span><span id="statsRecovered">0</span></div>
+                <div class="metric-row"><span>RPL_REJ</span><span id="statsReplayRejected">0</span></div>
+                <div class="metric-row"><span>DATA_TX</span><span id="statsBytes">0 B</span></div>
               </div>
-              <div class="dashboard-slider">
-                <label
-                  >Packet Loss <span id="simPacketLossLabel">0%</span></label
-                >
-                <input
-                  type="range"
-                  id="simPacketLoss"
-                  min="0"
-                  max="80"
-                  value="0"
-                />
-              </div>
-              <div class="dashboard-slider">
-                <label>Base Delay <span id="simDelayLabel">0ms</span></label>
-                <input
-                  type="range"
-                  id="simDelay"
-                  min="0"
-                  max="1000"
-                  value="0"
-                />
-              </div>
-              <div class="dashboard-slider">
-                <label>Jitter <span id="simJitterLabel">0ms</span></label>
-                <input
-                  type="range"
-                  id="simJitter"
-                  min="0"
-                  max="500"
-                  value="0"
-                />
-              </div>
-            </div>
 
-            <div class="dashboard-group">
-              <h4>Latest Packet Header</h4>
-              <pre class="packet-header-view" id="latestPacketHeader">{}</pre>
-            </div>
+              <div class="dashboard-group">
+                <h4>// PACKET_CLASSES</h4>
+                <div class="metric-row"><span>CONTROL</span><span id="classControl">0</span></div>
+                <div class="metric-row"><span>CRITICAL</span><span id="classCritical">0</span></div>
+                <div class="metric-row"><span>INTERACT</span><span id="classInteractive">0</span></div>
+                <div class="metric-row"><span>BEST_EFF</span><span id="classBestEffort">0</span></div>
+              </div>
 
-            <div class="dashboard-group">
-              <h4>Export</h4>
-              <button
-                class="btn dashboard-export"
-                id="btnExportMetrics"
-                type="button"
-              >
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Download JSON</span>
-              </button>
-            </div>
+              <div class="dashboard-group degradation-sandbox">
+                <h4>// NETWORK_DEGRADATION</h4>
+                <div class="loss-presets">
+                  <button type="button" data-loss-preset="0">0%</button>
+                  <button type="button" data-loss-preset="5">5%</button>
+                  <button type="button" data-loss-preset="10">10%</button>
+                  <button type="button" data-loss-preset="20">20%</button>
+                </div>
+                <div class="dashboard-slider">
+                  <label>PKT_LOSS <span id="simPacketLossLabel">0%</span></label>
+                  <input type="range" id="simPacketLoss" min="0" max="80" value="0" />
+                </div>
+                <div class="dashboard-slider">
+                  <label>DELAY_BASE <span id="simDelayLabel">0ms</span></label>
+                  <input type="range" id="simDelay" min="0" max="1000" value="0" />
+                </div>
+                <div class="dashboard-slider">
+                  <label>JITTER <span id="simJitterLabel">0ms</span></label>
+                  <input type="range" id="simJitter" min="0" max="500" value="0" />
+                </div>
+              </div>
 
-            <div id="advancedDemoPanels"></div>
+              <div class="dashboard-group">
+                <h4>// LATEST_HEADER</h4>
+                <pre class="packet-header-view" id="latestPacketHeader">{}</pre>
+                <button class="btn dashboard-export" id="btnExportMetrics" type="button">
+                  [ EXPORT_DUMP ]
+                </button>
+              </div>
+
+              <div id="advancedDemoPanels"></div>
+            </div>
           </div>
-        </div>
+        </aside>
       </section>
     </main>
 
     <div id="toast" class="toast hidden"></div>
 
     <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
-    <script
-      type="module"
-      src="{{ url_for('static', filename='js/main.js') }}"
-    ></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
-      // Dashboard collapse toggle (small, self-contained)
       (function () {
-        const btn = document.getElementById("btnToggleDashboard");
+        const btnOpen = document.getElementById("btnOpenTelemetry");
+        const btnClose = document.getElementById("btnToggleDashboard");
         const dashboard = document.getElementById("researchDashboard");
-        if (!btn || !dashboard) return;
-
-        // Restore state from localStorage
-        const collapsedKey = "dashboardCollapsed_v1";
-        const isCollapsed = localStorage.getItem(collapsedKey) === "1";
-        if (isCollapsed) dashboard.classList.add("collapsed");
-
-        function updateIcon() {
-          const icon = btn.querySelector("i");
-          if (!icon) return;
-          if (dashboard.classList.contains("collapsed")) {
-            icon.className = "fa-solid fa-angle-down";
-            btn.setAttribute("aria-expanded", "false");
-          } else {
-            icon.className = "fa-solid fa-angle-up";
-            btn.setAttribute("aria-expanded", "true");
-          }
+        
+        if (btnOpen && dashboard) {
+          btnOpen.addEventListener("click", () => {
+            dashboard.classList.remove("collapsed");
+          });
         }
-
-        updateIcon();
-
-        btn.addEventListener("click", () => {
-          dashboard.classList.toggle("collapsed");
-          const collapsed = dashboard.classList.contains("collapsed");
-          localStorage.setItem(collapsedKey, collapsed ? "1" : "0");
-          updateIcon();
-        });
+        
+        if (btnClose && dashboard) {
+          btnClose.addEventListener("click", () => {
+            dashboard.classList.add("collapsed");
+          });
+        }
       })();
     </script>
   </body>

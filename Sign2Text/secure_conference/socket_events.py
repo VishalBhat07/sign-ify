@@ -13,7 +13,6 @@ from .auth import RoomAuth
 from .config import STUN_SERVERS
 from .debug_transport_tools import run_debug_action
 from .rooms import Participant, RoomRegistry
-from .semantic import classify_packet
 
 
 def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registry: RoomRegistry) -> None:
@@ -170,72 +169,7 @@ def register_socket_events(socketio: SocketIO, room_auth: RoomAuth, room_registr
             room=room_id,
         )
 
-    @socketio.on("isl_frame_secure")
-    def on_isl_frame_secure(data):
-        room_id, room, participant = get_verified_participant(data)
-        if not room or not participant:
-            return
-        if participant.role != "signer":
-            return
 
-        encrypted_frame_b64 = data.get("encrypted_frame")
-        if not encrypted_frame_b64:
-            emit("signaling_error", {"error": "Missing encrypted ISL frame"})
-            return
-
-        recognizer = current_app.config.get("RECOGNIZER")
-        if not recognizer or not recognizer.available:
-            return
-
-        try:
-            encrypted_frame = base64.b64decode(encrypted_frame_b64)
-            semantic = classify_packet("isl_frame_secure", data)
-            if room._looks_like_secure_packet(encrypted_frame):
-                frame_bytes, inbound_header = room.decrypt_secure_payload(encrypted_frame)
-            else:
-                frame_bytes = room.decrypt_payload(encrypted_frame)
-                inbound_header = None
-        except Exception as exc:
-            emit("signaling_error", {"error": f"Unable to decrypt ISL frame: {exc}"})
-            return
-
-        result = recognizer.predict_from_image_bytes(frame_bytes)
-        recognized = bool(result.gesture and result.confidence > 0.65)
-
-        timestamp = ""
-        if recognized:
-            room.add_message(participant.name, result.gesture, "sign")
-            timestamp = room.messages[-1]["timestamp"]
-
-        payload = json.dumps(
-            {
-                "sender": participant.name,
-                "gesture": result.gesture if recognized else None,
-                "confidence": result.confidence,
-                "timestamp": timestamp,
-                "landmarks": result.landmarks,
-                "bbox": result.bbox,
-                "annotated_preview": result.annotated_preview,
-            }
-        ).encode()
-        outbound_label = semantic.label.value if "semantic" in locals() else "CRITICAL"
-        encrypted_result = base64.b64encode(room.encrypt_payload(payload, outbound_label)).decode()
-
-        emit(
-            "isl_feedback_secure",
-            {
-                "encrypted_payload": encrypted_result,
-                "sender_sid": request.sid,
-                "transport_header": inbound_header.to_dict() if inbound_header else None,
-                "transport_state": {
-                    "sender": room.sender_state,
-                    "receiver": room.receiver_state,
-                    "epoch_id": room.epoch_id,
-                    "policy_fingerprint": room.policy_fingerprint,
-                },
-            },
-            room=room_id,
-        )
 
     @socketio.on("transport_metrics")
     def on_transport_metrics(data):
