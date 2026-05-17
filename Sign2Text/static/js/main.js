@@ -2,7 +2,7 @@ import { state, elements, socket } from './state.js';
 import { deriveSessionKey } from './crypto.js';
 import { showTab, getSelectedRole, showToast, addMessage, addSystemMessage, resetRoomCreatedState, setParticipantCount, setRecordingState } from './ui.js';
 import { stopIslCapture } from './inference.js';
-import { cleanupPeer, handleOffer, handleAnswer, handleIceCandidate, createOfferForPeer, initializeLocalMedia, toggleLocalCamera, toggleLocalMic } from './webrtc.js';
+import { cleanupPeer, handleOffer, handleAnswer, handleIceCandidate, createOfferForPeer, initializeLocalMedia, toggleLocalCamera, toggleLocalMic, startMicVisualizer } from './webrtc.js';
 import { initDashboard } from './dashboard.js';
 import { initDemoPanels, recordDecision } from './demo_components.js';
 
@@ -274,6 +274,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       await state.mediaReadyPromise;
+      // Start mic wave visualizer if audio was enabled at join
+      if (state.localAudioEnabled && state.localStream) {
+        startMicVisualizer(state.localStream);
+      }
     } catch (error) {
       return;
     }

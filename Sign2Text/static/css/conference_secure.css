@@ -603,6 +603,44 @@ input:focus {
   border-color: var(--text);
 }
 
+.media-toggle.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 6px rgba(204, 255, 0, 0.25);
+}
+
+/* ── Mic Wave Visualizer (Google Meet style) ── */
+.mic-wave-visualizer {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 28px;
+  padding: 0 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+  opacity: 0;
+}
+
+.mic-wave-visualizer.active {
+  display: flex;
+  opacity: 1;
+  border-color: var(--primary);
+  box-shadow: 0 0 8px rgba(204, 255, 0, 0.15);
+}
+
+.mic-wave-bar {
+  width: 3px;
+  min-height: 4px;
+  height: 4px;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: height 0.08s ease-out, opacity 0.1s ease;
+  opacity: 0.3;
+  box-shadow: 0 0 4px rgba(204, 255, 0, 0.4);
+}
+
 /* CHAT SECTION */
 .chat-section {
   height: 200px;

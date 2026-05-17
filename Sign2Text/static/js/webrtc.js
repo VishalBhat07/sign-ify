@@ -4,6 +4,96 @@ import { addMessage, updateRemotePlaceholder, showToast, clearIslOverlay } from 
 import { startIslCapture, stopIslCapture } from './inference.js';
 import { processInboundReliability } from './reliability.js';
 
+// ── Mic Audio Visualizer (Google Meet-style wave) ──
+let micAnalyserCtx = null;
+let micAnalyser = null;
+let micSource = null;
+let micAnimFrame = null;
+
+function createWaveContainer() {
+  let container = document.getElementById('micWaveVisualizer');
+  if (container) return container;
+  container = document.createElement('div');
+  container.id = 'micWaveVisualizer';
+  container.className = 'mic-wave-visualizer';
+  container.innerHTML = `<div class="mic-wave-bar"></div><div class="mic-wave-bar"></div><div class="mic-wave-bar"></div><div class="mic-wave-bar"></div><div class="mic-wave-bar"></div>`;
+  return container;
+}
+
+function injectWaveNextToMic() {
+  const btn = elements.btnToggleMic;
+  if (!btn) return;
+  let container = document.getElementById('micWaveVisualizer');
+  if (!container) {
+    container = createWaveContainer();
+    btn.parentElement.insertBefore(container, btn.nextSibling);
+  }
+  return container;
+}
+
+export function startMicVisualizer(stream) {
+  stopMicVisualizer();
+  const audioTracks = stream.getAudioTracks();
+  if (!audioTracks.length || !audioTracks[0].enabled) return;
+
+  const container = injectWaveNextToMic();
+  if (!container) return;
+  container.classList.add('active');
+
+  try {
+    micAnalyserCtx = new (window.AudioContext || window.webkitAudioContext)();
+    micAnalyser = micAnalyserCtx.createAnalyser();
+    micAnalyser.fftSize = 64;
+    micSource = micAnalyserCtx.createMediaStreamSource(stream);
+    micSource.connect(micAnalyser);
+    // Do NOT connect to destination — we don't want local playback
+
+    const bars = container.querySelectorAll('.mic-wave-bar');
+    const dataArray = new Uint8Array(micAnalyser.frequencyBinCount);
+
+    function draw() {
+      micAnimFrame = requestAnimationFrame(draw);
+      micAnalyser.getByteFrequencyData(dataArray);
+
+      // Pick 5 bands spread across the spectrum
+      const step = Math.floor(dataArray.length / bars.length);
+      bars.forEach((bar, i) => {
+        const value = dataArray[i * step] / 255;
+        const height = Math.max(4, value * 28);
+        bar.style.height = `${height}px`;
+        bar.style.opacity = Math.max(0.3, value);
+      });
+    }
+    draw();
+  } catch (e) {
+    console.warn('Mic visualizer not available:', e);
+  }
+}
+
+export function stopMicVisualizer() {
+  if (micAnimFrame) {
+    cancelAnimationFrame(micAnimFrame);
+    micAnimFrame = null;
+  }
+  if (micSource) {
+    micSource.disconnect();
+    micSource = null;
+  }
+  if (micAnalyserCtx) {
+    micAnalyserCtx.close().catch(() => {});
+    micAnalyserCtx = null;
+  }
+  micAnalyser = null;
+  const container = document.getElementById('micWaveVisualizer');
+  if (container) {
+    container.classList.remove('active');
+    container.querySelectorAll('.mic-wave-bar').forEach(bar => {
+      bar.style.height = '4px';
+      bar.style.opacity = '0.3';
+    });
+  }
+}
+
 export function setRemoteStream(peerSid, stream) {
   state.remoteStreams.set(peerSid, stream);
   state.activeRemoteSid = peerSid;
@@ -147,9 +237,17 @@ export function ensureMediaTransceivers(peerConnection) {
   const hasVideo = transceivers.some(
     (transceiver) => transceiver.receiver && transceiver.receiver.track.kind === "video"
   );
+  const hasAudio = transceivers.some(
+    (transceiver) => transceiver.receiver && transceiver.receiver.track.kind === "audio"
+  );
 
   if (!hasVideo) {
     peerConnection.addTransceiver("video", {
+      direction: state.localStream ? "sendrecv" : "recvonly",
+    });
+  }
+  if (!hasAudio) {
+    peerConnection.addTransceiver("audio", {
       direction: state.localStream ? "sendrecv" : "recvonly",
     });
   }
@@ -338,19 +436,34 @@ export async function toggleLocalMic() {
   if (state.localAudioEnabled) {
     setTrackEnabled("audio", false);
     state.localAudioEnabled = false;
+    stopMicVisualizer();
     updateMediaToggleButtons();
     return;
   }
 
   const existingAudioTracks = state.localStream ? state.localStream.getAudioTracks() : [];
-  if (existingAudioTracks.length > 0) {
+  const hasLiveTrack = existingAudioTracks.some(t => t.readyState === "live");
+
+  if (hasLiveTrack) {
     setTrackEnabled("audio", true);
   } else {
+    // Remove any ended tracks before adding fresh one
+    existingAudioTracks.forEach(t => {
+      t.stop();
+      if (state.localStream) state.localStream.removeTrack(t);
+    });
+    // Clear stale track IDs from all peer connections
+    for (const pc of state.peerConnections.values()) {
+      if (pc.__addedTrackIds) {
+        existingAudioTracks.forEach(t => pc.__addedTrackIds.delete(t.id));
+      }
+    }
     await addLocalTrack("audio");
-    await renegotiateAllPeers();
+    await replaceOrAddAudioTrackOnPeers();
   }
-  
+
   state.localAudioEnabled = true;
+  if (state.localStream) startMicVisualizer(state.localStream);
   updateMediaToggleButtons();
 }
 
@@ -371,6 +484,24 @@ function setTrackEnabled(kind, enabled) {
   state.localStream.getTracks().filter((track) => track.kind === kind).forEach((track) => {
     track.enabled = enabled;
   });
+}
+
+async function replaceOrAddAudioTrackOnPeers() {
+  const newAudioTrack = state.localStream ? state.localStream.getAudioTracks()[0] : null;
+  if (!newAudioTrack) return;
+
+  for (const [peerSid, pc] of state.peerConnections.entries()) {
+    const audioSender = pc.getSenders().find(s => s.track && s.track.kind === "audio");
+    if (audioSender) {
+      // Replace the track in-place — no renegotiation needed
+      await audioSender.replaceTrack(newAudioTrack);
+    } else {
+      // No audio sender yet — add the track and renegotiate
+      pc.addTrack(newAudioTrack, state.localStream);
+      if (pc.__addedTrackIds) pc.__addedTrackIds.add(newAudioTrack.id);
+      await createOfferForPeer(peerSid, state.peerMetadata.get(peerSid) || {});
+    }
+  }
 }
 
 async function renegotiateAllPeers() {
