@@ -513,10 +513,17 @@ input:focus {
 
 /* VIDEO GRID */
 .video-grid {
-  display: flex;
+  display: grid;
   gap: 1rem;
   flex: 1;
   min-height: 300px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-rows: 1fr;
+}
+
+.video-grid:has(> :nth-child(3)) {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
 }
 
 .video-container {
@@ -599,6 +606,10 @@ input:focus {
 /* CHAT SECTION */
 .chat-section {
   height: 200px;
+  min-height: 150px;
+  max-height: 80vh;
+  resize: vertical;
+  overflow: hidden;
   border: var(--border-thick);
   display: flex;
   flex-direction: column;

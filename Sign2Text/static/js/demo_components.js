@@ -153,6 +153,10 @@ export function recordPacketEvent(packet) {
   upsertLimited(state.packetFlow, entry, 8);
   state.packetTimeline.push({ ...entry, type: packet.type || entry.stage });
   limit(state.packetTimeline, 28);
+  
+  state.heatmapData = state.heatmapData || [];
+  state.heatmapData.push({ label: entry.label, status: entry.status });
+  if (state.heatmapData.length > 200) state.heatmapData.shift();
 }
 
 export function recordDecision(text, label = "CRITICAL") {
@@ -412,15 +416,20 @@ function renderSecurityDashboard() {
 function renderHeatmap() {
   const panel = document.getElementById("packetHeatmap");
   if (!panel) return;
-  const counts = state.transportStats.classCounts;
-  const max = Math.max(1, ...Object.values(counts));
-  panel.innerHTML = Object.entries(counts).map(([label, count]) => `
-    <div class="heat-row">
-      <span>${label}</span>
-      <i style="--packet-color:${classColor(label)};width:${Math.max(8, (count / max) * 100)}%"></i>
-      <b>${count}</b>
+  const data = state.heatmapData || [];
+  
+  const squares = data.map(p => {
+    const color = classColor(p.label);
+    const opacity = p.status === 'rejected' ? 0.3 : (p.status === 'recovered' ? 0.8 : 1);
+    return `<div style="width: 12px; height: 12px; background: ${color}; opacity: ${opacity}; border-radius: 2px;" title="${p.label} - ${p.status}"></div>`;
+  }).join("");
+  
+  panel.innerHTML = `
+    <div style="display: flex; flex-wrap: wrap; gap: 4px; padding-top: 8px;">
+      ${squares}
+      ${data.length === 0 ? `<div class="empty-mini">Awaiting packets...</div>` : ''}
     </div>
-  `).join("");
+  `;
 }
 
 function renderDecisionLog() {

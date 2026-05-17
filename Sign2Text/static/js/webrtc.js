@@ -7,27 +7,62 @@ import { processInboundReliability } from './reliability.js';
 export function setRemoteStream(peerSid, stream) {
   state.remoteStreams.set(peerSid, stream);
   state.activeRemoteSid = peerSid;
-  elements.remoteVideo.srcObject = stream;
-  elements.remotePlaceholder.classList.add("hidden");
-  const peer = state.peerMetadata.get(peerSid);
-  const label = peer ? `${peer.name} (${peer.role})` : "Connected peer";
-  elements.remoteLabel.innerHTML = `<i class="fa-solid fa-lock"></i> <span>${label}</span>`;
+
+  let container = document.querySelector(`.video-container.remote[data-peer="${peerSid}"]`);
+  if (!container) {
+    const staticContainer = document.querySelector('.video-container.remote:not(.dynamic-remote)');
+    const isStaticFree = staticContainer && !staticContainer.hasAttribute('data-peer');
+    
+    if (isStaticFree) {
+      container = staticContainer;
+      container.setAttribute('data-peer', peerSid);
+      elements.remoteVideo.srcObject = stream;
+      elements.remotePlaceholder.classList.add("hidden");
+      const peer = state.peerMetadata.get(peerSid);
+      const label = peer ? `${peer.name} (${peer.role})` : "Connected peer";
+      elements.remoteLabel.innerHTML = `<i class="fa-solid fa-lock"></i> <span>${label}</span>`;
+    } else {
+      container = document.createElement('article');
+      container.className = 'video-container remote dynamic-remote';
+      container.id = `remote-container-${peerSid}`;
+      container.setAttribute('data-peer', peerSid);
+      
+      container.innerHTML = `
+        <video id="remote-video-${peerSid}" autoplay playsinline></video>
+        <div id="remote-placeholder-${peerSid}" class="video-placeholder hidden"></div>
+        <div class="video-overlay">
+          <div class="video-badge">
+            <span id="remote-label-${peerSid}"></span>
+          </div>
+          <div class="video-badge neon-badge">
+            <i class="fa-solid fa-language"></i>
+            <span id="remote-gesture-${peerSid}">NO_DATA_RX</span>
+          </div>
+        </div>
+      `;
+      document.querySelector('.video-grid').appendChild(container);
+      
+      container.querySelector('video').srcObject = stream;
+      const peer = state.peerMetadata.get(peerSid);
+      const label = peer ? `${peer.name} (${peer.role})` : "Connected peer";
+      container.querySelector(`#remote-label-${peerSid}`).innerHTML = `<i class="fa-solid fa-lock"></i> <span>${label}</span>`;
+    }
+  } else {
+    if (container.classList.contains('dynamic-remote')) {
+      container.querySelector('video').srcObject = stream;
+    } else {
+      elements.remoteVideo.srcObject = stream;
+    }
+  }
+
   elements.mediaStatus.textContent = "WebRTC connected";
 }
 
 export function maybeDisplayAnotherRemote() {
-  const remaining = Array.from(state.remoteStreams.entries())[0];
-  if (!remaining) {
+  if (state.remoteStreams.size === 0) {
     state.activeRemoteSid = null;
-    updateRemotePlaceholder("Waiting for a peer connection...");
-    elements.remoteLabel.innerHTML =
-      '<i class="fa-solid fa-user-group"></i> <span>No remote peer yet</span>';
     elements.mediaStatus.textContent = "WebRTC waiting";
-    return;
   }
-
-  const [peerSid, stream] = remaining;
-  setRemoteStream(peerSid, stream);
 }
 
 export async function initializeLocalMedia() {
@@ -132,9 +167,20 @@ export function cleanupPeer(peerSid) {
   state.peerConnections.delete(peerSid);
   state.peerMetadata.delete(peerSid);
   state.remoteStreams.delete(peerSid);
-  if (state.activeRemoteSid === peerSid) {
-    maybeDisplayAnotherRemote();
+
+  const container = document.querySelector(`.video-container.remote[data-peer="${peerSid}"]`);
+  if (container) {
+    if (container.classList.contains('dynamic-remote')) {
+      container.remove();
+    } else {
+      container.removeAttribute('data-peer');
+      elements.remoteVideo.srcObject = null;
+      updateRemotePlaceholder("Waiting for a peer connection...");
+      elements.remoteLabel.innerHTML = '<i class="fa-solid fa-user-group"></i> <span>No remote peer yet</span>';
+    }
   }
+
+  maybeDisplayAnotherRemote();
 }
 
 export function setupDataChannel(channel, peerSid) {
@@ -155,8 +201,16 @@ export function setupDataChannel(channel, peerSid) {
             if (!shouldProcess) return;
             
             if (payload.type === "gesture_change") {
-                elements.remoteGestureBadge.innerHTML =
-                  `<i class="fa-solid fa-language"></i> <span>${payload.sender}: ${payload.gesture}</span>`;
+                const container = document.querySelector(`.video-container.remote[data-peer="${peerSid}"]`);
+                if (container) {
+                    if (container.classList.contains('dynamic-remote')) {
+                        container.querySelector(`#remote-gesture-${peerSid}`).innerHTML =
+                            `<span>${payload.sender}: ${payload.gesture}</span>`;
+                    } else {
+                        elements.remoteGestureBadge.innerHTML =
+                            `<i class="fa-solid fa-language"></i> <span>${payload.sender}: ${payload.gesture}</span>`;
+                    }
+                }
                 
                 addMessage({
                   sender: payload.sender,
@@ -264,14 +318,20 @@ export async function toggleLocalCamera() {
     return;
   }
 
-  await addLocalTrack("video");
+  const existingVideoTracks = state.localStream ? state.localStream.getVideoTracks() : [];
+  if (existingVideoTracks.length > 0) {
+    setTrackEnabled("video", true);
+  } else {
+    await addLocalTrack("video");
+    await renegotiateAllPeers();
+  }
+  
   state.localVideoEnabled = true;
   elements.localPlaceholder.classList.add("hidden");
   if (state.currentRole === "signer") {
     startIslCapture();
   }
   updateMediaToggleButtons();
-  await renegotiateAllPeers();
 }
 
 export async function toggleLocalMic() {
@@ -282,10 +342,16 @@ export async function toggleLocalMic() {
     return;
   }
 
-  await addLocalTrack("audio");
+  const existingAudioTracks = state.localStream ? state.localStream.getAudioTracks() : [];
+  if (existingAudioTracks.length > 0) {
+    setTrackEnabled("audio", true);
+  } else {
+    await addLocalTrack("audio");
+    await renegotiateAllPeers();
+  }
+  
   state.localAudioEnabled = true;
   updateMediaToggleButtons();
-  await renegotiateAllPeers();
 }
 
 async function addLocalTrack(kind) {
