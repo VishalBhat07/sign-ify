@@ -8,3 +8,7 @@ __pycache__
 *.pem
 
 *.onnx
+
+.DS_Store
+.agents
+skills-lock.json
