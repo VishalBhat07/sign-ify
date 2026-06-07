@@ -7,8 +7,9 @@ __pycache__
 *.pyc
 *.pem
 
-*.onnx
+# *.onnx
 
 .DS_Store
 .agents
 skills-lock.json
+Sign2Text/static/model.onnx
